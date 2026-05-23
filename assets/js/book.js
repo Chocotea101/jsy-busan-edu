@@ -7,7 +7,7 @@
 
 const PAGE_NUMBERS = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const PAGES = PAGE_NUMBERS.map(n =>
-  `assets/img/pages-hd/page-${String(n).padStart(2, '0')}.png`
+  `assets/img/pages-hd/page-${String(n).padStart(2, '0')}.webp`
 );
 
 /* 원본 페이지 비율: 2079×2953 = 1 : 1.42 */
