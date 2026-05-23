@@ -12,7 +12,7 @@
    - GOOGLE_CLIENT_ID: OAuth 2.0 클라이언트 ID
    ============================================================ */
 
-const GOOGLE_CLIENT_ID = ''; // ← 여기에 OAuth 2.0 클라이언트 ID 입력
+const GOOGLE_CLIENT_ID = '759963004396-058d7i81a9o1cqog9k97lul832i1aovo.apps.googleusercontent.com';
 const OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
 
 /* ============================================================ */
