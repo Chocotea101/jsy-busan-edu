@@ -41,7 +41,12 @@ const modeBtns = document.querySelectorAll('.cards-mode button');
 const tabsEl = document.getElementById('cards-tabs');
 const stageEl = document.getElementById('cards-stage');
 
-let state = { mode: 'policy', group: 1 };
+const VIEW_KEY = 'jsy_cards_view';
+let state = {
+  mode: 'policy',
+  group: 1,
+  view: localStorage.getItem(VIEW_KEY) === 'horizontal' ? 'horizontal' : 'vertical'
+};
 
 /* ===== 라우팅 — #policy-1, #series-2 ===== */
 function readHash() {
@@ -99,18 +104,40 @@ function renderTabs() {
 
 async function renderStage() {
   const cfg = MODES[state.mode];
+  const isHorizontal = state.view === 'horizontal';
+
   stageEl.innerHTML = `
     <div class="cards-stage-head">
       <span class="section-eyebrow">${cfg.label}</span>
       <h3>${cfg.groupTitle(state.group)}</h3>
       <div class="cs-counter" id="cs-counter">불러오는 중…</div>
+      <div class="view-toggle" role="group" aria-label="보기 방식">
+        <button class="view-toggle-btn ${!isHorizontal ? 'is-active' : ''}" data-view="vertical" aria-label="세로 보기">
+          <span class="vt-icon">☰</span><span class="vt-label">세로</span>
+        </button>
+        <button class="view-toggle-btn ${isHorizontal ? 'is-active' : ''}" data-view="horizontal" aria-label="가로 보기">
+          <span class="vt-icon">⇆</span><span class="vt-label">가로</span>
+        </button>
+      </div>
     </div>
-    <div class="cards-vertical" id="cards-vertical"></div>
+    <div class="cards-${state.view}" id="cards-container"></div>
+    ${isHorizontal ? '<div class="cards-h-controls"><button class="cards-h-arrow" id="cards-h-prev" aria-label="이전 카드">←</button><span class="cards-h-counter" id="cards-h-counter">1 / ${CARDS_PER_GROUP}</span><button class="cards-h-arrow" id="cards-h-next" aria-label="다음 카드">→</button></div>' : ''}
     <div class="cards-bottom-nav" id="cards-bottom-nav"></div>
   `;
 
+  // 보기 토글 핸들러
+  stageEl.querySelectorAll('.view-toggle-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      const v = b.dataset.view;
+      if (v === state.view) return;
+      state.view = v;
+      localStorage.setItem(VIEW_KEY, v);
+      renderStage();
+    });
+  });
+
   const cards = await detectCards(state.mode, state.group);
-  const wrap = document.getElementById('cards-vertical');
+  const container = document.getElementById('cards-container');
   const counter = document.getElementById('cs-counter');
   const bottomNav = document.getElementById('cards-bottom-nav');
 
@@ -128,14 +155,58 @@ async function renderStage() {
     return;
   }
 
-  counter.textContent = `${cards.length}장 · 아래로 스크롤하며 보세요`;
+  counter.textContent = isHorizontal
+    ? `${cards.length}장 · 좌우로 넘기며 보세요`
+    : `${cards.length}장 · 아래로 스크롤하며 보세요`;
 
-  wrap.innerHTML = cards.map((c, i) => `
+  container.innerHTML = cards.map((c, i) => `
     <figure class="vcard">
       <img src="${c.src}" alt="${cfg.groupLabel(state.group)} 카드 ${c.idx}" loading="${i < 2 ? 'eager' : 'lazy'}">
       <figcaption class="vcard-num">${c.idx} / ${cards.length}</figcaption>
     </figure>
   `).join('');
+
+  // 가로 모드 컨트롤 (좌우 화살표 + 카운터)
+  if (isHorizontal) {
+    const hPrev = document.getElementById('cards-h-prev');
+    const hNext = document.getElementById('cards-h-next');
+    const hCounter = document.getElementById('cards-h-counter');
+
+    function scrollByCard(delta) {
+      const first = container.querySelector('.vcard');
+      if (!first) return;
+      const w = first.getBoundingClientRect().width + 16; // gap
+      container.scrollBy({ left: delta * w, behavior: 'smooth' });
+    }
+
+    hPrev.addEventListener('click', () => scrollByCard(-1));
+    hNext.addEventListener('click', () => scrollByCard(1));
+
+    // 키보드 좌우 화살표
+    const onKey = e => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); scrollByCard(-1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); scrollByCard(1); }
+    };
+    document.addEventListener('keydown', onKey);
+    // cleanup은 다음 렌더 시 stageEl.innerHTML로 자동 (리스너만 남지만 미사용 영역엔 무해)
+
+    // 스크롤 시 카운터 갱신
+    const updateCounter = () => {
+      const items = container.querySelectorAll('.vcard');
+      const c = container.getBoundingClientRect().left + container.getBoundingClientRect().width / 2;
+      let idx = 0, best = Infinity;
+      items.forEach((it, i) => {
+        const r = it.getBoundingClientRect();
+        const cent = r.left + r.width / 2;
+        const d = Math.abs(cent - c);
+        if (d < best) { best = d; idx = i; }
+      });
+      hCounter.textContent = `${idx + 1} / ${items.length}`;
+    };
+    container.addEventListener('scroll', updateCounter, { passive: true });
+    setTimeout(updateCounter, 100);
+  }
 
   // 하단 이전/다음 공약 네비
   const prev = state.group > 1 ? state.group - 1 : null;

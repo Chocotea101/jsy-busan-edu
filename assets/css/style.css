@@ -1229,11 +1229,122 @@ section { padding: 64px 0; }
   margin-top: 4px;
 }
 
+/* 보기 방식 토글 (세로/가로) */
+.view-toggle {
+  display: inline-flex;
+  margin-top: 14px;
+  background: var(--gray-100);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.view-toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.view-toggle-btn:hover { color: var(--black); }
+
+.view-toggle-btn.is-active {
+  background: var(--red);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.vt-icon { font-size: 16px; line-height: 1; }
+
 /* 세로 카드 묶음 */
 .cards-vertical {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+/* 가로 카드 묶음 — 화면 높이 기준, 비율 유지 */
+.cards-horizontal {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 4px 18px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-300) transparent;
+}
+
+.cards-horizontal::-webkit-scrollbar { height: 8px; }
+.cards-horizontal::-webkit-scrollbar-track { background: transparent; }
+.cards-horizontal::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 4px;
+}
+
+.cards-horizontal .vcard {
+  flex: 0 0 auto;
+  height: 75vh;
+  max-height: 900px;
+  scroll-snap-align: center;
+}
+
+.cards-horizontal .vcard img {
+  height: 100%;
+  width: auto;
+  display: block;
+  object-fit: contain;
+  background: var(--gray-100);
+}
+
+@media (max-width: 700px) {
+  .cards-horizontal .vcard { height: 70vh; max-height: 720px; }
+}
+
+/* 가로 모드 컨트롤 */
+.cards-h-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.cards-h-arrow {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--red);
+  color: #fff;
+  border: none;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background .15s, transform .12s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cards-h-arrow:hover { background: var(--red-dark); }
+.cards-h-arrow:active { transform: scale(0.92); }
+
+.cards-h-counter {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gray-700);
+  min-width: 70px;
+  text-align: center;
 }
 
 .vcard {
