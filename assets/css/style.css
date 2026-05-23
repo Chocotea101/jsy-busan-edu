@@ -1271,44 +1271,65 @@ section { padding: 64px 0; }
   gap: 18px;
 }
 
-/* 가로 카드 묶음 — 화면 높이 기준, 비율 유지 */
+/* 가로 카드 묶음 — 인스타 카루셀 스타일 (한 카드 = 한 화면) */
 .cards-horizontal {
   display: flex;
   flex-direction: row;
-  gap: 16px;
+  gap: 0;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  padding: 8px 4px 18px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--gray-300) transparent;
+  scrollbar-width: none;
+  border-radius: 18px;
+  background: transparent;
 }
 
-.cards-horizontal::-webkit-scrollbar { height: 8px; }
-.cards-horizontal::-webkit-scrollbar-track { background: transparent; }
-.cards-horizontal::-webkit-scrollbar-thumb {
-  background: var(--gray-300);
-  border-radius: 4px;
-}
+.cards-horizontal::-webkit-scrollbar { display: none; }
 
 .cards-horizontal .vcard {
-  flex: 0 0 auto;
-  height: 75vh;
-  max-height: 900px;
+  flex: 0 0 100%;
+  height: auto;
   scroll-snap-align: center;
+  scroll-snap-stop: always;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-50);
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: zoom-in;
+  padding: 0;
+  margin: 0;
+  min-height: 60vh;
+  position: relative;
 }
 
 .cards-horizontal .vcard img {
-  height: 100%;
-  width: auto;
   display: block;
+  width: 100%;
+  height: auto;
+  max-height: 80vh;
   object-fit: contain;
   background: var(--gray-100);
 }
 
+.cards-horizontal .vcard-num {
+  /* 가로 모드에서도 우상단에 페이지 번호 */
+}
+
 @media (max-width: 700px) {
-  .cards-horizontal .vcard { height: 70vh; max-height: 720px; }
+  .cards-horizontal .vcard {
+    min-height: 55vh;
+    border-radius: 14px;
+  }
+  .cards-horizontal .vcard img { max-height: 75vh; }
+}
+
+/* 세로 모드에서도 카드 클릭 가능 표시 */
+.cards-vertical .vcard {
+  cursor: zoom-in;
 }
 
 /* 가로 모드 컨트롤 */
@@ -1416,6 +1437,119 @@ section { padding: 64px 0; }
 }
 
 .cards-empty strong { color: var(--gray-700); display: block; font-size: 20px; margin-bottom: 8px; }
+
+/* ============================================================
+   카드 라이트박스 (확대 보기)
+   ============================================================ */
+
+.cards-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(15, 18, 25, 0.72);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 70px 20px 70px;
+  animation: cl-fade-in .2s ease;
+}
+
+@keyframes cl-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.cards-lightbox.is-open { display: flex; }
+
+.cl-stage {
+  max-width: 95vw;
+  max-height: 88vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cl-stage img {
+  max-width: 100%;
+  max-height: 88vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 14px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  animation: cl-pop .25s cubic-bezier(.2, .8, .2, 1.2);
+}
+
+@keyframes cl-pop {
+  from { transform: scale(0.94); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.cl-close,
+.cl-arrow {
+  position: absolute;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.28);
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, transform .12s, opacity .15s;
+  backdrop-filter: blur(6px);
+}
+
+.cl-close { top: 18px; right: 18px; width: 50px; height: 50px; font-size: 20px; font-weight: 700; }
+
+.cl-arrow {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 58px;
+  height: 58px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.cl-prev { left: 18px; }
+.cl-next { right: 18px; }
+
+.cl-close:hover,
+.cl-arrow:hover { background: rgba(255,255,255,0.32); }
+.cl-arrow:active { transform: translateY(-50%) scale(0.92); }
+
+.cl-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: rgba(255,255,255,0.08);
+}
+.cl-arrow:disabled:hover { background: rgba(255,255,255,0.08); }
+
+.cl-counter {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(6px);
+}
+
+@media (max-width: 600px) {
+  .cards-lightbox { padding: 60px 12px; }
+  .cl-arrow { width: 46px; height: 46px; font-size: 18px; }
+  .cl-prev { left: 10px; }
+  .cl-next { right: 10px; }
+  .cl-close { top: 14px; right: 14px; width: 44px; height: 44px; }
+  .cl-counter { bottom: 14px; font-size: 13px; padding: 6px 16px; }
+}
 
 /* ============================================================
    활동사진 갤러리 (activities.html)

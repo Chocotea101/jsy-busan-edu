@@ -47,6 +47,17 @@
     <!-- 카드 슬라이드 영역 -->
     <div class="cards-stage" id="cards-stage"></div>
 
+    <!-- 카드 클릭 시 확대 라이트박스 -->
+    <div class="cards-lightbox" id="cards-lightbox" role="dialog" aria-modal="true" aria-label="카드 크게 보기">
+      <button class="cl-close" id="cl-close" aria-label="닫기">✕</button>
+      <button class="cl-arrow cl-prev" id="cl-prev" aria-label="이전 카드">←</button>
+      <button class="cl-arrow cl-next" id="cl-next" aria-label="다음 카드">→</button>
+      <div class="cl-stage">
+        <img id="cl-img" alt="">
+      </div>
+      <div class="cl-counter" id="cl-counter"></div>
+    </div>
+
     <div style="text-align:center; margin-top:36px;">
       <a href="index.html" class="btn btn-ghost">← 메인으로</a>
       <a href="pledges.html" class="btn btn-outline" style="margin-left:8px;">공약 상세 보기</a>

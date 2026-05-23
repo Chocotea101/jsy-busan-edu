@@ -156,15 +156,20 @@ async function renderStage() {
   }
 
   counter.textContent = isHorizontal
-    ? `${cards.length}장 · 좌우로 넘기며 보세요`
-    : `${cards.length}장 · 아래로 스크롤하며 보세요`;
+    ? `${cards.length}장 · 좌우로 넘기거나 카드를 눌러 크게 보세요`
+    : `${cards.length}장 · 카드를 눌러 크게 보거나 스크롤하며 보세요`;
 
   container.innerHTML = cards.map((c, i) => `
-    <figure class="vcard">
+    <figure class="vcard" data-idx="${i}">
       <img src="${c.src}" alt="${cfg.groupLabel(state.group)} 카드 ${c.idx}" loading="${i < 2 ? 'eager' : 'lazy'}">
       <figcaption class="vcard-num">${c.idx} / ${cards.length}</figcaption>
     </figure>
   `).join('');
+
+  // 카드 클릭 → 라이트박스
+  container.querySelectorAll('.vcard').forEach(card => {
+    card.addEventListener('click', () => openLightbox(Number(card.dataset.idx), cards));
+  });
 
   // 가로 모드 컨트롤 (좌우 화살표 + 카운터)
   if (isHorizontal) {
@@ -249,3 +254,73 @@ function syncFromHash() {
 
 window.addEventListener('hashchange', syncFromHash);
 syncFromHash();
+
+/* ============================================================
+   라이트박스 (카드 확대)
+   ============================================================ */
+
+const lb = document.getElementById('cards-lightbox');
+const lbImg = document.getElementById('cl-img');
+const lbCounter = document.getElementById('cl-counter');
+const lbPrev = document.getElementById('cl-prev');
+const lbNext = document.getElementById('cl-next');
+const lbClose = document.getElementById('cl-close');
+
+let lbCards = [];
+let lbIndex = -1;
+
+function openLightbox(idx, cards) {
+  lbCards = cards;
+  lbIndex = idx;
+  updateLightbox();
+  lb.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  lb.classList.remove('is-open');
+  document.body.style.overflow = '';
+  lbIndex = -1;
+  lbCards = [];
+}
+
+function updateLightbox() {
+  const c = lbCards[lbIndex];
+  if (!c) return;
+  lbImg.src = c.src;
+  lbImg.alt = `카드 ${c.idx}`;
+  lbCounter.textContent = `${lbIndex + 1} / ${lbCards.length}`;
+  lbPrev.disabled = lbIndex === 0;
+  lbNext.disabled = lbIndex === lbCards.length - 1;
+}
+
+function lbStep(d) {
+  const i = lbIndex + d;
+  if (i < 0 || i >= lbCards.length) return;
+  lbIndex = i;
+  updateLightbox();
+}
+
+lbClose.addEventListener('click', closeLightbox);
+lbPrev.addEventListener('click', () => lbStep(-1));
+lbNext.addEventListener('click', () => lbStep(1));
+lb.addEventListener('click', e => { if (e.target === lb) closeLightbox(); });
+
+document.addEventListener('keydown', e => {
+  if (!lb.classList.contains('is-open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowRight') { e.preventDefault(); lbStep(1); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); lbStep(-1); }
+});
+
+let lbTouchStart = null;
+lb.addEventListener('touchstart', e => { lbTouchStart = e.touches[0].clientX; }, { passive: true });
+lb.addEventListener('touchend', e => {
+  if (lbTouchStart === null) return;
+  const dx = e.changedTouches[0].clientX - lbTouchStart;
+  if (Math.abs(dx) > 50) {
+    if (dx < 0) lbStep(1);
+    else lbStep(-1);
+  }
+  lbTouchStart = null;
+}, { passive: true });
