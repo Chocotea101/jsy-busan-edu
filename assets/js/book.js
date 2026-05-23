@@ -153,7 +153,7 @@ document.addEventListener('keydown', e => {
 });
 
 /* ============================================================
-   페이지 확대 라이트박스 (인스타 카루셀 — 부드러운 스와이프)
+   페이지 확대 라이트박스 (카루셀 + 줌 컨트롤)
    ============================================================ */
 
 const lbEl = document.getElementById('book-lightbox');
@@ -162,22 +162,29 @@ const lbCounter = document.getElementById('bl-counter');
 const lbPrev = document.getElementById('bl-prev');
 const lbNext = document.getElementById('bl-next');
 const lbClose = document.getElementById('bl-close');
+const lbZoomIn = document.getElementById('bl-zoom-in');
+const lbZoomOut = document.getElementById('bl-zoom-out');
+const lbZoomLevel = document.getElementById('bl-zoom-level');
+
+const ZOOM_LEVELS = [1, 1.25, 1.5, 2, 2.5, 3];
 
 let lbIndex = 0;
 let lbBuilt = false;
+let currentZoom = 1;
 
 function buildLightboxSlides() {
   if (lbBuilt || !lbCarousel) return;
   lbCarousel.innerHTML = PAGES.map((src, i) => `
     <div class="bl-slide" data-idx="${i}">
-      <img src="${src}" alt="${i + 1}페이지" loading="lazy">
+      <img src="${src}" alt="${i + 1}페이지" loading="lazy" draggable="false">
     </div>
   `).join('');
   lbBuilt = true;
 
-  // 스크롤로 현재 슬라이드 인덱스 업데이트
+  // 스크롤로 현재 슬라이드 인덱스 업데이트 (줌 100%일 때만)
   let scrollTimer = null;
   lbCarousel.addEventListener('scroll', () => {
+    if (currentZoom > 1) return;
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(updateIndexFromScroll, 80);
   }, { passive: true });
@@ -204,13 +211,77 @@ function scrollToSlide(idx, behavior = 'smooth') {
   lbCarousel.scrollTo({ left: idx * w, behavior });
 }
 
+/* ===== 줌 ===== */
+function applyZoom() {
+  const isZoomed = currentZoom > 1;
+  const slides = lbCarousel.querySelectorAll('.bl-slide');
+
+  slides.forEach(slide => {
+    slide.classList.toggle('is-zoomed', isZoomed);
+    slide.style.setProperty('--zoom-scale', currentZoom);
+  });
+
+  // 줌 인 시 카루셀 snap 해제 (슬라이드 안에서 자유 패닝)
+  lbCarousel.classList.toggle('is-zoom-mode', isZoomed);
+
+  // UI 갱신
+  lbZoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
+  lbZoomIn.disabled = currentZoom >= ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
+  lbZoomOut.disabled = currentZoom <= 1;
+
+  // 줌 적용 후 현재 슬라이드를 다시 화면 중앙으로
+  if (!isZoomed) {
+    requestAnimationFrame(() => scrollToSlide(lbIndex, 'instant'));
+  } else {
+    // 줌 모드: 현재 슬라이드의 가운데로 스크롤
+    requestAnimationFrame(() => {
+      const slide = lbCarousel.querySelector(`.bl-slide[data-idx="${lbIndex}"]`);
+      if (slide) {
+        const img = slide.querySelector('img');
+        if (img) {
+          slide.scrollLeft = (img.offsetWidth - slide.clientWidth) / 2;
+          slide.scrollTop = (img.offsetHeight - slide.clientHeight) / 2;
+        }
+      }
+    });
+  }
+}
+
+function zoomIn() {
+  const i = ZOOM_LEVELS.indexOf(currentZoom);
+  if (i < 0) {
+    // 비표준 값 → 가장 가까운 다음 단계
+    currentZoom = ZOOM_LEVELS.find(z => z > currentZoom) || ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
+  } else if (i < ZOOM_LEVELS.length - 1) {
+    currentZoom = ZOOM_LEVELS[i + 1];
+  }
+  applyZoom();
+}
+
+function zoomOut() {
+  const i = ZOOM_LEVELS.indexOf(currentZoom);
+  if (i < 0) {
+    currentZoom = [...ZOOM_LEVELS].reverse().find(z => z < currentZoom) || 1;
+  } else if (i > 0) {
+    currentZoom = ZOOM_LEVELS[i - 1];
+  }
+  applyZoom();
+}
+
+function zoomReset() {
+  currentZoom = 1;
+  applyZoom();
+}
+
+/* ===== 라이트박스 열고 닫기 ===== */
 function openLightbox() {
   if (!pageFlip) return;
   buildLightboxSlides();
   lbIndex = pageFlip.getCurrentPageIndex();
+  currentZoom = 1;
+  applyZoom();
   lbEl.classList.add('is-open');
   document.body.style.overflow = 'hidden';
-  // 약간의 딜레이로 레이아웃 잡힌 후 스크롤
   requestAnimationFrame(() => {
     scrollToSlide(lbIndex, 'instant');
     updateLightboxUI();
@@ -220,7 +291,7 @@ function openLightbox() {
 function closeLightbox() {
   lbEl.classList.remove('is-open');
   document.body.style.overflow = '';
-  // 책을 라이트박스에서 본 페이지로 이동시킴
+  currentZoom = 1;
   if (pageFlip && lbIndex !== pageFlip.getCurrentPageIndex()) {
     try { pageFlip.turnToPage(lbIndex); } catch (e) {}
   }
@@ -230,16 +301,35 @@ function lbStep(d) {
   const i = lbIndex + d;
   if (i < 0 || i >= PAGES.length) return;
   lbIndex = i;
-  scrollToSlide(lbIndex);
+  if (currentZoom > 1) {
+    // 줌 모드에서는 줌을 유지하면서 페이지 변경
+    requestAnimationFrame(() => {
+      scrollToSlide(lbIndex, 'instant');
+      // 새 슬라이드도 가운데로
+      const slide = lbCarousel.querySelector(`.bl-slide[data-idx="${lbIndex}"]`);
+      if (slide) {
+        const img = slide.querySelector('img');
+        if (img) {
+          slide.scrollLeft = (img.offsetWidth - slide.clientWidth) / 2;
+          slide.scrollTop = (img.offsetHeight - slide.clientHeight) / 2;
+        }
+      }
+    });
+  } else {
+    scrollToSlide(lbIndex);
+  }
   updateLightboxUI();
 }
 
+/* ===== 이벤트 ===== */
 zoomBtn?.addEventListener('click', openLightbox);
 lbClose?.addEventListener('click', closeLightbox);
 lbPrev?.addEventListener('click', () => lbStep(-1));
 lbNext?.addEventListener('click', () => lbStep(1));
+lbZoomIn?.addEventListener('click', zoomIn);
+lbZoomOut?.addEventListener('click', zoomOut);
+lbZoomLevel?.addEventListener('click', zoomReset);
 
-// 외부(배경) 클릭 시 닫기 — 카루셀 내부 클릭은 닫지 않음
 lbEl?.addEventListener('click', e => {
   if (e.target === lbEl) closeLightbox();
 });
@@ -249,12 +339,17 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeLightbox();
   if (e.key === 'ArrowRight') { e.preventDefault(); lbStep(1); }
   if (e.key === 'ArrowLeft')  { e.preventDefault(); lbStep(-1); }
+  if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn(); }
+  if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomOut(); }
+  if (e.key === '0') { e.preventDefault(); zoomReset(); }
 });
 
 // 리사이즈 시 현재 슬라이드 위치 보정
 window.addEventListener('resize', () => {
   if (lbEl?.classList.contains('is-open')) {
-    setTimeout(() => scrollToSlide(lbIndex, 'instant'), 100);
+    setTimeout(() => {
+      if (currentZoom === 1) scrollToSlide(lbIndex, 'instant');
+    }, 100);
   }
 });
 

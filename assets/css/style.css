@@ -1264,6 +1264,13 @@ section { padding: 64px 0; }
 
 .bl-carousel::-webkit-scrollbar { display: none; }
 
+/* 줌 모드 — 카루셀 스냅 해제 (슬라이드 안에서 패닝 우선) */
+.bl-carousel.is-zoom-mode {
+  scroll-snap-type: none;
+  overflow: hidden;
+  touch-action: none;
+}
+
 .bl-slide {
   flex: 0 0 100%;
   scroll-snap-align: center;
@@ -1272,6 +1279,7 @@ section { padding: 64px 0; }
   align-items: center;
   justify-content: center;
   padding: 0 6px;
+  overflow: hidden;
 }
 
 .bl-slide img {
@@ -1285,11 +1293,104 @@ section { padding: 64px 0; }
   user-select: none;
   -webkit-user-drag: none;
   image-rendering: -webkit-optimize-contrast;
+  transition: transform .2s cubic-bezier(.2,.8,.2,1);
+}
+
+/* 줌 적용 — 슬라이드가 스크롤 가능해지고 이미지가 커짐 */
+.bl-slide.is-zoomed {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  align-items: flex-start;
+  justify-content: flex-start;
+  cursor: grab;
+}
+
+.bl-slide.is-zoomed:active { cursor: grabbing; }
+
+.bl-slide.is-zoomed img {
+  /* 줌 비율만큼 이미지 자체를 키움 → 슬라이드 안에서 자연 스크롤 */
+  max-width: none;
+  max-height: none;
+  width: calc(var(--zoom-scale, 1) * 100%);
+  height: auto;
+  border-radius: 8px;
+  margin: auto;       /* 작은 이미지는 가운데, 큰 이미지는 좌상단부터 */
 }
 
 /* 라이트박스 처음 열릴 때 부드러운 진입 */
 .book-lightbox.is-open .bl-carousel {
   animation: cl-pop .25s cubic-bezier(.2, .8, .2, 1.2);
+}
+
+/* ===== 줌 컨트롤 (상단 중앙) ===== */
+.bl-zoom-controls {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 999px;
+  padding: 5px;
+  backdrop-filter: blur(8px);
+  z-index: 2;
+}
+
+.bl-zoom-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, opacity .15s;
+  font-family: inherit;
+}
+
+.bl-zoom-btn:hover { background: rgba(255,255,255,0.3); }
+
+.bl-zoom-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: rgba(255,255,255,0.08);
+}
+
+.bl-zoom-level {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  min-width: 60px;
+  padding: 0 10px;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+}
+
+.bl-zoom-level:hover {
+  color: #fff;
+  text-shadow: 0 0 6px rgba(255,255,255,0.5);
+}
+
+@media (max-width: 600px) {
+  .bl-zoom-controls {
+    top: 12px;
+    padding: 4px;
+    gap: 4px;
+  }
+  .bl-zoom-btn { width: 36px; height: 36px; font-size: 18px; }
+  .bl-zoom-level { font-size: 13px; min-width: 52px; padding: 0 6px; }
 }
 
 .bl-close,
