@@ -31,9 +31,23 @@
   <button id="prev" aria-label="이전 페이지">←</button>
   <span class="book-pageinfo" id="pageinfo">1 / 11</span>
   <button id="next" aria-label="다음 페이지">→</button>
+  <button id="zoom" class="book-zoom-btn" aria-label="현재 페이지 크게 보기" title="크게 보기">
+    <span aria-hidden="true">🔍</span> 크게 보기
+  </button>
 </div>
 
-<p class="book-hint">페이지 모서리를 끌어서 넘기거나, 좌·우 화살표 버튼/키보드를 사용하세요.</p>
+<p class="book-hint">페이지 모서리를 끌어서 넘기거나 좌·우 화살표·키보드를 사용하세요. 글씨가 작으면 <strong>크게 보기</strong> 버튼을 눌러주세요.</p>
+
+<!-- 페이지 확대 라이트박스 -->
+<div class="book-lightbox" id="book-lightbox" role="dialog" aria-modal="true" aria-label="페이지 크게 보기">
+  <button class="bl-close" id="bl-close" aria-label="닫기">✕</button>
+  <button class="bl-arrow bl-prev" id="bl-prev" aria-label="이전 페이지">←</button>
+  <button class="bl-arrow bl-next" id="bl-next" aria-label="다음 페이지">→</button>
+  <div class="bl-stage">
+    <img id="bl-img" alt="">
+  </div>
+  <div class="bl-counter" id="bl-counter"></div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 <script src="assets/js/book.js"></script>

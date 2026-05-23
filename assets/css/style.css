@@ -1068,18 +1068,24 @@ section { padding: 64px 0; }
 
 .book-stage {
   position: relative;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: flex;
   justify-content: center;
   align-items: center;
-  /* 화면 높이에 맞춰 자동 조절 */
-  min-height: clamp(360px, calc(100vh - 200px), 1080px);
+  /* 어르신 친화 — 화면을 가능한 많이 활용 */
+  min-height: clamp(420px, calc(100vh - 140px), 1280px);
 }
 
 #flipbook {
   margin: 0 auto;
   box-shadow: 0 30px 70px rgba(0,0,0,.55);
+}
+
+#flipbook img,
+.stf__item img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 /* 로딩 인디케이터 */
@@ -1160,6 +1166,129 @@ section { padding: 64px 0; }
 
 .book-controls button:hover { background: rgba(255,255,255,.24); }
 .book-controls button:disabled { opacity: .35; cursor: not-allowed; }
+
+/* 크게 보기 버튼 (확대) */
+.book-zoom-btn {
+  width: auto !important;
+  padding: 0 18px;
+  font-size: 14px !important;
+  font-weight: 700;
+  background: var(--red) !important;
+  border-color: var(--red) !important;
+  margin-left: 8px;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.book-zoom-btn:hover { background: var(--red-dark) !important; border-color: var(--red-dark) !important; }
+
+@media (max-width: 480px) {
+  .book-zoom-btn { padding: 0 14px; font-size: 13px !important; }
+}
+
+/* ============================================================
+   책자 페이지 확대 라이트박스
+   ============================================================ */
+
+.book-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(15, 18, 25, 0.78);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 70px 20px 70px;
+  animation: cl-fade-in .2s ease;
+}
+
+.book-lightbox.is-open { display: flex; }
+
+.bl-stage {
+  max-width: 96vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bl-stage img {
+  max-width: 100%;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 14px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+  animation: cl-pop .25s cubic-bezier(.2, .8, .2, 1.2);
+}
+
+.bl-close,
+.bl-arrow {
+  position: absolute;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.28);
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, transform .12s;
+  backdrop-filter: blur(6px);
+}
+
+.bl-close { top: 18px; right: 18px; width: 52px; height: 52px; font-size: 20px; font-weight: 700; }
+
+.bl-arrow {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 60px;
+  height: 60px;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.bl-prev { left: 18px; }
+.bl-next { right: 18px; }
+
+.bl-close:hover,
+.bl-arrow:hover { background: rgba(255,255,255,0.32); }
+.bl-arrow:active { transform: translateY(-50%) scale(0.92); }
+
+.bl-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: rgba(255,255,255,0.08);
+}
+
+.bl-counter {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(6px);
+}
+
+@media (max-width: 600px) {
+  .book-lightbox { padding: 60px 8px; }
+  .bl-arrow { width: 48px; height: 48px; font-size: 20px; }
+  .bl-prev { left: 8px; }
+  .bl-next { right: 8px; }
+  .bl-close { top: 12px; right: 12px; width: 44px; height: 44px; }
+  .bl-counter { bottom: 12px; font-size: 14px; padding: 7px 18px; }
+}
 
 .book-pageinfo {
   font-size: 14px;
