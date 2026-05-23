@@ -1696,6 +1696,221 @@ section { padding: 64px 0; }
   z-index: 2;
 }
 
+/* 카드 제목 오버레이 */
+.activity-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 28px 16px 14px;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 60%, transparent 100%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  cursor: pointer;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* 라이트박스 — 글 표시 영역 */
+.lb-title {
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.lb-body {
+  font-size: 15px;
+  color: #ddd;
+  line-height: 1.65;
+  margin-bottom: 8px;
+  white-space: normal;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.lb-date {
+  font-size: 13px;
+  color: #999;
+  font-weight: 600;
+}
+
+/* lightbox-caption은 기존 단순 텍스트에서 박스로 확장 */
+.lightbox-caption {
+  background: rgba(0,0,0,0.55);
+  padding: 12px 18px;
+  border-radius: 12px;
+  max-width: 700px;
+  margin: 0 auto;
+  text-align: left;
+  opacity: 1 !important;
+}
+
+/* ============================================================
+   글쓰기 모달
+   ============================================================ */
+
+.post-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.post-modal.is-open { display: flex; }
+
+.post-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+}
+
+.post-modal-body {
+  position: relative;
+  background: #fff;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 32px;
+  box-shadow: var(--shadow-lg);
+}
+
+@media (max-width: 600px) {
+  .post-modal-body { padding: 22px; border-radius: 14px; }
+}
+
+.post-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+
+.post-modal-close:hover { background: var(--red); color: #fff; }
+
+.post-modal-body h3 {
+  font-size: 22px;
+  font-weight: 900;
+  margin: 0 0 22px;
+  letter-spacing: -0.02em;
+}
+
+.post-field {
+  display: block;
+  margin-bottom: 18px;
+}
+
+.post-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gray-700);
+  margin-bottom: 8px;
+}
+
+.post-label small {
+  font-weight: 600;
+  color: var(--gray-500);
+  margin-left: 4px;
+}
+
+.post-field input[type="text"],
+.post-field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 10px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--black);
+  background: #fff;
+  transition: border-color .15s;
+  resize: vertical;
+}
+
+.post-field input[type="text"]:focus,
+.post-field textarea:focus {
+  outline: none;
+  border-color: var(--red);
+}
+
+.post-field textarea { min-height: 120px; line-height: 1.6; }
+
+/* 파일 드롭존 */
+.post-file-drop {
+  position: relative;
+  border: 2px dashed var(--gray-300);
+  border-radius: 12px;
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  overflow: hidden;
+}
+
+.post-file-drop:hover,
+.post-file-drop.is-dragover {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+
+.post-file-drop input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.post-file-placeholder {
+  font-size: 14px;
+  color: var(--gray-500);
+  font-weight: 600;
+  text-align: center;
+  padding: 20px;
+  pointer-events: none;
+}
+
+.post-file-preview {
+  max-width: 100%;
+  max-height: 280px;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.post-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.post-modal-actions .btn { flex: 1; max-width: 200px; }
+
 .activity-item:hover .activity-delete,
 .activity-item:focus-within .activity-delete { opacity: 1; }
 
