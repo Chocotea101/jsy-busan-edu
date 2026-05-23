@@ -6,8 +6,8 @@
    - 관리자 로그인 시 글쓰기/삭제 UI 활성화
    ============================================================ */
 
-const GDRIVE_FOLDER_ID = ''; // ← 폴더 ID 입력
-const GDRIVE_API_KEY   = ''; // ← API 키 입력
+const GDRIVE_FOLDER_ID = '1puev3p72soyTCByHDKXmcary41Kni4lb';
+const GDRIVE_API_KEY   = 'AIzaSyA6GCjF7kj-ClInis5sbjWxKQ7B8RIZfTI';
 
 /* ============================================================ */
 
