@@ -1,0 +1,33 @@
+# Netlify 설정
+# 이 폴더를 https://app.netlify.com/drop 에 드래그&드롭하면 즉시 배포됩니다.
+
+[build]
+  publish = "."
+
+# 정적 자산 캐시 헤더
+[[headers]]
+  for = "/assets/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000, immutable"
+
+[[headers]]
+  for = "/assets/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/assets/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+# 한글이 깨지지 않도록 charset 명시
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Content-Type = "text/html; charset=UTF-8"
+
+# 카드뉴스 폴더 (나중에 채워질 자리)
+[[headers]]
+  for = "/assets/img/pledge-cards/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
