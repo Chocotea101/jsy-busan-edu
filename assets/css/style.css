@@ -1107,9 +1107,24 @@ section { padding: 64px 0; }
 }
 
 #flipbook img,
-.stf__item img {
+.stf__item img,
+.stf__block img {
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
+}
+
+/* StPageFlip 내부 캔버스·svg 텍스트 또렷도 향상 */
+.stf__parent,
+.stf__wrapper {
+  -webkit-font-smoothing: subpixel-antialiased;
+  text-rendering: geometricPrecision;
+}
+
+/* 책 페이지에 transform이 걸려도 흐려지지 않도록 GPU 가속 + 픽셀 정렬 */
+.stf__item {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* 로딩 인디케이터 */
@@ -1232,15 +1247,34 @@ section { padding: 64px 0; }
 
 .book-lightbox.is-open { display: flex; }
 
-.bl-stage {
+/* 라이트박스 카루셀 — 손가락으로 좌우 슬라이드 */
+.bl-carousel {
+  display: flex;
+  width: 100%;
   max-width: 96vw;
-  max-height: 90vh;
+  height: 90vh;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.bl-carousel::-webkit-scrollbar { display: none; }
+
+.bl-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 6px;
 }
 
-.bl-stage img {
+.bl-slide img {
   max-width: 100%;
   max-height: 90vh;
   width: auto;
@@ -1248,6 +1282,13 @@ section { padding: 64px 0; }
   object-fit: contain;
   border-radius: 14px;
   box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+  user-select: none;
+  -webkit-user-drag: none;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* 라이트박스 처음 열릴 때 부드러운 진입 */
+.book-lightbox.is-open .bl-carousel {
   animation: cl-pop .25s cubic-bezier(.2, .8, .2, 1.2);
 }
 
