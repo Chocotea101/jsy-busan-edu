@@ -2,11 +2,11 @@
    책자(플립북) — StPageFlip
    ============================================================ */
 
-/* 책자 뷰는 고화질(2800px, 원본 PDF 기반) 사용.
+/* 책자 뷰는 고화질(300dpi PNG, 2079×2953) 사용.
    교육정책팀 요청으로 p2(후보자정보공개자료)는 책자 뷰에서 제외. */
 const PAGE_NUMBERS = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const PAGES = PAGE_NUMBERS.map(n =>
-  `assets/img/pages-hd/page-${String(n).padStart(2, '0')}.jpg`
+  `assets/img/pages-hd/page-${String(n).padStart(2, '0')}.png`
 );
 
 const flipEl = document.getElementById('flipbook');
