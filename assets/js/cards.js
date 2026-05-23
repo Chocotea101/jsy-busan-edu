@@ -1,7 +1,8 @@
 /* ============================================================
-   카드뉴스 페이지 — 정책카드 + 시리즈 통합
+   카드뉴스 페이지 — 세로 스크롤 방식
    - 정책카드: 공약 1~6, 각 8장
    - 시리즈: 시리즈 1~2, 각 8장
+   - 선택한 그룹의 카드 8장을 세로로 펼침 (스와이프·화살표 없음)
    - 파일 규칙: assets/img/policy-cards/{n}/01.jpg~08.jpg
                 assets/img/series-cards/{n}/01.jpg~08.jpg
    ============================================================ */
@@ -40,7 +41,7 @@ const modeBtns = document.querySelectorAll('.cards-mode button');
 const tabsEl = document.getElementById('cards-tabs');
 const stageEl = document.getElementById('cards-stage');
 
-let state = { mode: 'policy', group: 1, index: 0, cards: [] };
+let state = { mode: 'policy', group: 1 };
 
 /* ===== 라우팅 — #policy-1, #series-2 ===== */
 function readHash() {
@@ -104,23 +105,14 @@ async function renderStage() {
       <h3>${cfg.groupTitle(state.group)}</h3>
       <div class="cs-counter" id="cs-counter">불러오는 중…</div>
     </div>
-    <div class="cards-track-wrap">
-      <div class="cards-track" id="cards-track"></div>
-    </div>
-    <div class="cards-controls">
-      <button class="cards-arrow" id="cards-prev" aria-label="이전 카드">←</button>
-      <div class="cards-dots" id="cards-dots"></div>
-      <button class="cards-arrow" id="cards-next" aria-label="다음 카드">→</button>
-    </div>
+    <div class="cards-vertical" id="cards-vertical"></div>
+    <div class="cards-bottom-nav" id="cards-bottom-nav"></div>
   `;
 
   const cards = await detectCards(state.mode, state.group);
-  state.cards = cards;
-  state.index = 0;
-
-  const track = document.getElementById('cards-track');
-  const dots = document.getElementById('cards-dots');
+  const wrap = document.getElementById('cards-vertical');
   const counter = document.getElementById('cs-counter');
+  const bottomNav = document.getElementById('cards-bottom-nav');
 
   if (cards.length === 0) {
     stageEl.innerHTML = `
@@ -136,73 +128,30 @@ async function renderStage() {
     return;
   }
 
-  cards.forEach(c => {
-    const img = document.createElement('img');
-    img.src = c.src;
-    img.alt = `${cfg.groupLabel(state.group)} 카드 ${c.idx}`;
-    img.loading = 'lazy';
-    track.appendChild(img);
+  counter.textContent = `${cards.length}장 · 아래로 스크롤하며 보세요`;
+
+  wrap.innerHTML = cards.map((c, i) => `
+    <figure class="vcard">
+      <img src="${c.src}" alt="${cfg.groupLabel(state.group)} 카드 ${c.idx}" loading="${i < 2 ? 'eager' : 'lazy'}">
+      <figcaption class="vcard-num">${c.idx} / ${cards.length}</figcaption>
+    </figure>
+  `).join('');
+
+  // 하단 이전/다음 공약 네비
+  const prev = state.group > 1 ? state.group - 1 : null;
+  const next = state.group < cfg.groups ? state.group + 1 : null;
+  bottomNav.innerHTML = `
+    ${prev ? `<button class="btn btn-ghost" data-group="${prev}">← ${cfg.groupLabel(prev)}</button>` : '<span></span>'}
+    <button class="btn btn-outline" id="cards-back-top">맨 위로 ↑</button>
+    ${next ? `<button class="btn btn-primary" data-group="${next}">${cfg.groupLabel(next)} →</button>` : '<span></span>'}
+  `;
+  bottomNav.querySelectorAll('[data-group]').forEach(b => {
+    b.addEventListener('click', () => setHash(state.mode, Number(b.dataset.group)));
   });
-
-  cards.forEach((_, i) => {
-    const dot = document.createElement('button');
-    dot.className = 'cards-dot' + (i === 0 ? ' is-active' : '');
-    dot.setAttribute('aria-label', `${i + 1}번 카드로 이동`);
-    dot.addEventListener('click', () => goToIndex(i));
-    dots.appendChild(dot);
+  document.getElementById('cards-back-top').addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
-
-  counter.textContent = `1 / ${cards.length}`;
-
-  document.getElementById('cards-prev').addEventListener('click', () => goToIndex(state.index - 1));
-  document.getElementById('cards-next').addEventListener('click', () => goToIndex(state.index + 1));
-
-  attachSwipe(track);
-  updateUI();
 }
-
-function goToIndex(i) {
-  if (i < 0 || i >= state.cards.length) return;
-  state.index = i;
-  updateUI();
-}
-
-function updateUI() {
-  const track = document.getElementById('cards-track');
-  const counter = document.getElementById('cs-counter');
-  const prev = document.getElementById('cards-prev');
-  const next = document.getElementById('cards-next');
-  const dots = document.querySelectorAll('.cards-dot');
-
-  if (!track) return;
-  track.style.transform = `translateX(-${state.index * 100}%)`;
-  counter.textContent = `${state.index + 1} / ${state.cards.length}`;
-  prev.disabled = state.index === 0;
-  next.disabled = state.index === state.cards.length - 1;
-  dots.forEach((d, i) => d.classList.toggle('is-active', i === state.index));
-}
-
-/* ===== 스와이프 ===== */
-function attachSwipe(el) {
-  let startX = null;
-  el.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
-  el.addEventListener('touchend', e => {
-    if (startX === null) return;
-    const dx = e.changedTouches[0].clientX - startX;
-    if (Math.abs(dx) > 50) {
-      if (dx < 0) goToIndex(state.index + 1);
-      else goToIndex(state.index - 1);
-    }
-    startX = null;
-  }, { passive: true });
-}
-
-/* ===== 키보드 ===== */
-document.addEventListener('keydown', e => {
-  if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
-  if (e.key === 'ArrowLeft') goToIndex(state.index - 1);
-  if (e.key === 'ArrowRight') goToIndex(state.index + 1);
-});
 
 /* ===== 모드 전환 ===== */
 modeBtns.forEach(btn => {
@@ -220,6 +169,11 @@ function syncFromHash() {
   renderModeButtons();
   renderTabs();
   renderStage();
+  // 그룹 바뀌면 페이지 상단으로 (탭 위치까지)
+  if (window.scrollY > 200) {
+    const target = document.querySelector('.cards-tabs');
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 window.addEventListener('hashchange', syncFromHash);
