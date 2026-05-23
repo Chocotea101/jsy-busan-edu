@@ -1491,6 +1491,254 @@ section { padding: 64px 0; }
 }
 
 /* ============================================================
+   관리자 로그인 UI (헤더 우측)
+   ============================================================ */
+
+.admin-slot {
+  display: flex;
+  align-items: center;
+  margin-left: 14px;
+}
+
+@media (max-width: 720px) {
+  .admin-slot { margin-left: 8px; }
+}
+
+.admin-login-btn {
+  background: var(--gray-100);
+  border: 1px solid var(--gray-300);
+  color: var(--gray-700);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .15s;
+  white-space: nowrap;
+}
+
+.admin-login-btn:hover {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+
+.admin-login-icon { font-size: 12px; }
+
+@media (max-width: 480px) {
+  .admin-login-btn { padding: 7px 11px; font-size: 13px; }
+  .admin-login-btn span:not(.admin-login-icon) { display: none; }
+}
+
+/* 사용자 메뉴 */
+.admin-user {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gray-100);
+  border: 1px solid var(--gray-300);
+  border-radius: 999px;
+  padding: 5px 14px 5px 5px;
+  cursor: pointer;
+  outline: none;
+}
+
+.admin-user:hover, .admin-user:focus-within { background: var(--gray-50); border-color: var(--red); }
+
+.admin-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--red);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  object-fit: cover;
+}
+
+.admin-avatar-letter { background: var(--red); }
+
+.admin-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gray-700);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-caret { font-size: 10px; color: var(--gray-500); }
+
+.admin-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--gray-300);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  min-width: 240px;
+  padding: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity .15s, transform .15s, visibility .15s;
+  z-index: 60;
+}
+
+.admin-user:hover .admin-menu,
+.admin-user:focus-within .admin-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.admin-menu-email {
+  padding: 10px 12px 8px;
+  font-size: 12px;
+  color: var(--gray-500);
+  border-bottom: 1px solid var(--gray-300);
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+
+.admin-menu-link {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-700);
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+
+.admin-menu-link:hover { background: var(--red-soft); color: var(--red-dark); }
+
+@media (max-width: 480px) {
+  .admin-name { display: none; }
+  .admin-caret { display: none; }
+  .admin-user { padding: 4px; }
+}
+
+/* ============================================================
+   활동사진 — 관리자 모드 UI
+   ============================================================ */
+
+.activities-admin-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 2px dashed var(--red);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.admin-badge {
+  background: var(--red);
+  color: #fff;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.upload-btn {
+  cursor: pointer;
+  margin: 0;
+}
+
+.admin-tip {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .admin-tip { margin-left: 0; width: 100%; }
+}
+
+.activity-item { position: relative; }
+
+.activity-item img { cursor: pointer; }
+
+.activity-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s, background .15s, transform .12s;
+  z-index: 2;
+}
+
+.activity-item:hover .activity-delete,
+.activity-item:focus-within .activity-delete { opacity: 1; }
+
+.activity-delete:hover { background: var(--red); transform: scale(1.1); }
+
+@media (hover: none) {
+  .activity-delete { opacity: 1; background: rgba(0,0,0,0.7); }
+}
+
+/* ============================================================
+   토스트 알림
+   ============================================================ */
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--black);
+  color: #fff;
+  padding: 14px 22px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .25s, transform .25s, visibility .25s;
+  z-index: 2000;
+  max-width: calc(100vw - 40px);
+  text-align: center;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast-success { background: var(--c-5); }
+.toast-error   { background: var(--red); }
+
+/* ============================================================
    Utility
    ============================================================ */
 
