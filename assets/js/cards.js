@@ -31,9 +31,9 @@ const MODES = {
   }
 };
 
-/* 신규 카드 모드용 Google Drive 폴더 ID (정승윤 활동사진과 별도 폴더 권장) */
-const CARDS_GDRIVE_FOLDER_ID = ''; // ← 카드뉴스 전용 폴더 ID 입력
-const CARDS_GDRIVE_API_KEY   = 'AIzaSyA6GCjF7kj-ClInis5sbjWxKQ7B8RIZfTI';  // 기존 키 재사용
+/* 신규 카드 모드용 Google Drive 폴더 ID */
+const CARDS_GDRIVE_FOLDER_ID = '1nDWyrIFyHFc5l-b5jPPB3cWdszAxbuB9';
+const CARDS_GDRIVE_API_KEY   = 'AIzaSyA6GCjF7kj-ClInis5sbjWxKQ7B8RIZfTI';
 
 const POLICY_TITLES = [
   'AI 교육 대전환',
