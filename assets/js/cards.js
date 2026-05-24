@@ -35,6 +35,26 @@ const MODES = {
 const CARDS_GDRIVE_FOLDER_ID = '1nDWyrIFyHFc5l-b5jPPB3cWdszAxbuB9';
 const CARDS_GDRIVE_API_KEY   = 'AIzaSyA6GCjF7kj-ClInis5sbjWxKQ7B8RIZfTI';
 
+/* 글쓰기 모달 카테고리 옵션 */
+const CARD_CATEGORIES = [
+  { value: '',          label: '신규 카드 (어디에도 분류 안 함)' },
+  { value: 'policy-1',  label: '정책카드 · 공약 01 (AI 교육 대전환)' },
+  { value: 'policy-2',  label: '정책카드 · 공약 02 (진로·경제교육)' },
+  { value: 'policy-3',  label: '정책카드 · 공약 03 (글로벌 인성교육)' },
+  { value: 'policy-4',  label: '정책카드 · 공약 04 (수준별 맞춤형 학습)' },
+  { value: 'policy-5',  label: '정책카드 · 공약 05 (교육공동체 동행교육)' },
+  { value: 'policy-6',  label: '정책카드 · 공약 06 (체험중심교육)' },
+  { value: 'series-1',  label: '시리즈 카드 · 시리즈 1' },
+  { value: 'series-2',  label: '시리즈 카드 · 시리즈 2' }
+];
+
+/* 현재 모드+그룹 → 디폴트 카테고리 */
+function defaultCategoryForCurrentTab() {
+  if (state.mode === 'policy') return `policy-${state.group}`;
+  if (state.mode === 'series') return `series-${state.group}`;
+  return '';
+}
+
 const POLICY_TITLES = [
   'AI 교육 대전환',
   '진로 · 경제교육',
@@ -119,17 +139,18 @@ function renderTabs() {
 function renderAdminToolbar() {
   const wrap = document.getElementById('cards-admin-toolbar');
   if (!wrap) return;
-  const cfg = MODES[state.mode];
   const logged = window.Admin?.isLoggedIn();
-  if (cfg.type !== 'drive' || !logged) { wrap.innerHTML = ''; return; }
+  if (!logged) { wrap.innerHTML = ''; return; }
+  const cfg = MODES[state.mode];
+  const where = cfg.type === 'static' ? cfg.groupLabel(state.group) : '신규 카드';
   wrap.innerHTML = `
     <div class="activities-admin-bar" style="margin-bottom:18px;">
       <span class="admin-badge">관리자 모드</span>
-      <button class="btn btn-primary" id="cards-new-post">+ 새 카드뉴스</button>
-      <span class="admin-tip">카드를 호버하면 삭제 버튼이 보입니다</span>
+      <button class="btn btn-primary" id="cards-new-post">+ ${escapeHtml(where)}에 카드 추가</button>
+      <span class="admin-tip">모달에서 다른 카테고리로 변경 가능</span>
     </div>
   `;
-  document.getElementById('cards-new-post').addEventListener('click', openCardsPostModal);
+  document.getElementById('cards-new-post').addEventListener('click', () => openCardsPostModal(defaultCategoryForCurrentTab()));
 }
 
 async function renderStage() {
@@ -173,10 +194,34 @@ async function renderStage() {
     });
   });
 
-  const cards = await detectCards(state.mode, state.group);
+  // 정적 8장 + 해당 카테고리의 Drive 카드 통합
+  const staticCards = await detectCards(state.mode, state.group);
+  const targetCategory = `${state.mode}-${state.group}`;
+  const driveCards = (await fetchAllDrivePosts()).filter(p => p.category === targetCategory);
+
+  // 통합 — Drive(최신순) 먼저, 정적 뒤
+  const cards = [
+    ...driveCards.map(p => ({
+      src: driveThumbUrl(p.id, 1200),
+      alt: p.title || p.name,
+      isDrive: true,
+      id: p.id,
+      title: p.title,
+      body: p.body,
+      label: p.title || p.name
+    })),
+    ...staticCards.map(c => ({
+      src: c.src,
+      alt: `${cfg.groupLabel(state.group)} 카드 ${c.idx}`,
+      isDrive: false,
+      label: `카드 ${c.idx}`
+    }))
+  ];
+
   const container = document.getElementById('cards-container');
   const counter = document.getElementById('cs-counter');
   const bottomNav = document.getElementById('cards-bottom-nav');
+  const logged = window.Admin?.isLoggedIn();
 
   if (cards.length === 0) {
     stageEl.innerHTML = `
@@ -186,27 +231,40 @@ async function renderStage() {
       </div>
       <div class="cards-empty">
         <strong>아직 카드가 준비되지 않았습니다</strong>
-        디자이너가 작업을 마치면 이 영역에 ${CARDS_PER_GROUP}장의 카드뉴스가 자동으로 나타납니다.
+        ${logged ? `위쪽 '+ ${cfg.groupLabel(state.group)}에 카드 추가' 버튼으로 첫 카드를 올려보세요.` : '디자이너가 작업을 마치면 이 영역에 카드뉴스가 자동으로 나타납니다.'}
       </div>
     `;
     return;
   }
 
+  const adminInfo = driveCards.length > 0 ? ` · 관리자 추가 ${driveCards.length}장 포함` : '';
   counter.textContent = isHorizontal
-    ? `${cards.length}장 · 좌우로 넘기거나 카드를 눌러 크게 보세요`
-    : `${cards.length}장 · 카드를 눌러 크게 보거나 스크롤하며 보세요`;
+    ? `${cards.length}장${adminInfo} · 좌우로 넘기거나 카드를 눌러 크게 보세요`
+    : `${cards.length}장${adminInfo} · 카드를 눌러 크게 보거나 스크롤하며 보세요`;
 
   container.innerHTML = cards.map((c, i) => `
-    <figure class="vcard" data-idx="${i}">
-      <img src="${c.src}" alt="${cfg.groupLabel(state.group)} 카드 ${c.idx}" loading="${i < 2 ? 'eager' : 'lazy'}">
-      <figcaption class="vcard-num">${c.idx} / ${cards.length}</figcaption>
+    <figure class="vcard ${c.isDrive ? 'is-drive' : ''}" data-idx="${i}">
+      <img src="${c.src}" alt="${escapeAttr(c.alt)}" loading="${i < 2 ? 'eager' : 'lazy'}">
+      <figcaption class="vcard-num">${i + 1} / ${cards.length}</figcaption>
+      ${c.isDrive && c.title ? `<div class="recent-card-title">${escapeHtml(c.title)}</div>` : ''}
+      ${c.isDrive && logged ? `<button class="activity-delete" data-id="${c.id}" data-title="${escapeAttr(c.label)}" aria-label="삭제">✕</button>` : ''}
     </figure>
   `).join('');
 
   // 카드 클릭 → 라이트박스
   container.querySelectorAll('.vcard').forEach(card => {
-    card.addEventListener('click', () => openLightbox(Number(card.dataset.idx), cards));
+    card.querySelector('img').addEventListener('click', () => openLightbox(Number(card.dataset.idx), cards));
   });
+
+  // 관리자 — Drive 카드 삭제
+  if (logged) {
+    container.querySelectorAll('.activity-delete').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        deleteRecentCard(btn.dataset.id, btn.dataset.title);
+      });
+    });
+  }
 
   // 가로 모드 컨트롤 (좌우 화살표 + 카운터)
   if (isHorizontal) {
@@ -306,14 +364,43 @@ syncFromHash();
    ============================================================ */
 
 let recentPosts = []; // [{id, title, body, createdTime, name}, ...]
+let allDrivePosts = null;
+let allDriveTime = 0;
+const DRIVE_CACHE_TTL = 30000; // 30초
+
+async function fetchAllDrivePosts(force = false) {
+  if (!force && allDrivePosts && Date.now() - allDriveTime < DRIVE_CACHE_TTL) {
+    return allDrivePosts;
+  }
+  if (!CARDS_GDRIVE_FOLDER_ID || !CARDS_GDRIVE_API_KEY) return [];
+  const url = new URL('https://www.googleapis.com/drive/v3/files');
+  url.searchParams.set('q', `'${CARDS_GDRIVE_FOLDER_ID}' in parents and mimeType contains 'image/' and trashed=false`);
+  url.searchParams.set('fields', 'files(id,name,createdTime,modifiedTime,description)');
+  url.searchParams.set('orderBy', 'createdTime desc');
+  url.searchParams.set('pageSize', '200');
+  url.searchParams.set('key', CARDS_GDRIVE_API_KEY);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    allDrivePosts = (data.files || []).map(parseDrivePost);
+    allDriveTime = Date.now();
+    return allDrivePosts;
+  } catch (e) {
+    console.error('[Cards] Drive fetch error:', e);
+    return allDrivePosts || [];
+  }
+}
+
+function invalidateDriveCache() { allDrivePosts = null; }
 
 function parseDrivePost(file) {
-  let title = '', body = '';
+  let title = '', body = '', category = '';
   if (file.description) {
-    try { const d = JSON.parse(file.description); title = d.title || ''; body = d.body || ''; }
+    try { const d = JSON.parse(file.description); title = d.title || ''; body = d.body || ''; category = d.category || ''; }
     catch { body = file.description; }
   }
-  return { id: file.id, name: file.name, title, body, createdTime: file.createdTime };
+  return { id: file.id, name: file.name, title, body, category, createdTime: file.createdTime };
 }
 
 function driveThumbUrl(id, size = 800) {
@@ -350,21 +437,10 @@ async function renderDriveStage(cfg) {
     <div class="cards-vertical" id="cards-vertical"></div>
   `;
 
-  const url = new URL('https://www.googleapis.com/drive/v3/files');
-  url.searchParams.set('q', `'${CARDS_GDRIVE_FOLDER_ID}' in parents and mimeType contains 'image/' and trashed=false`);
-  url.searchParams.set('fields', 'files(id,name,createdTime,modifiedTime,description)');
-  url.searchParams.set('orderBy', 'createdTime desc');
-  url.searchParams.set('pageSize', '200');
-  url.searchParams.set('key', CARDS_GDRIVE_API_KEY);
-
   try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `HTTP ${res.status}`);
-    }
-    const data = await res.json();
-    recentPosts = (data.files || []).map(parseDrivePost);
+    // 모든 Drive 카드 캐시 사용 → 카테고리 없는 것만 신규 카드로
+    const all = await fetchAllDrivePosts();
+    recentPosts = all.filter(p => !p.category);
 
     const counter = document.getElementById('cs-counter');
     const wrap = document.getElementById('cards-vertical');
@@ -403,6 +479,22 @@ async function renderDriveStage(cfg) {
         });
       });
     }
+
+    // 신규 모드 카드 클릭 → 통합 라이트박스 (글 표시 포함)
+    wrap.querySelectorAll('.vcard').forEach(card => {
+      const img = card.querySelector('img');
+      img.addEventListener('click', () => {
+        const idx = Number(card.dataset.idx);
+        // 통합 카드 구조로 변환
+        const cards = recentPosts.map(p => ({
+          src: driveThumbUrl(p.id, 1600),
+          alt: p.title || p.name,
+          isDrive: true, id: p.id, title: p.title, body: p.body,
+          label: p.title || p.name
+        }));
+        openLightbox(idx, cards);
+      });
+    });
   } catch (e) {
     console.error('[Cards Recent] Drive API error:', e);
     document.getElementById('cards-vertical').innerHTML = `
@@ -469,8 +561,8 @@ function openRecentLightbox(idx) {
   }, 0);
 }
 
-/* ===== 글쓰기 모달 (신규 카드 추가) ===== */
-function openCardsPostModal() {
+/* ===== 글쓰기 모달 (카테고리 선택 포함) ===== */
+function openCardsPostModal(defaultCategory = '') {
   let modal = document.getElementById('cards-post-modal');
   if (!modal) {
     modal = document.createElement('div');
@@ -482,6 +574,12 @@ function openCardsPostModal() {
         <button class="post-modal-close" type="button" aria-label="닫기">✕</button>
         <h3>새 카드뉴스 올리기</h3>
         <form id="cards-post-form">
+          <label class="post-field">
+            <span class="post-label">📂 어디에 올릴까요?</span>
+            <select id="cards-post-category" class="post-select">
+              ${CARD_CATEGORIES.map(c => `<option value="${escapeAttr(c.value)}">${escapeHtml(c.label)}</option>`).join('')}
+            </select>
+          </label>
           <label class="post-field">
             <span class="post-label">제목 <small>(선택)</small></span>
             <input type="text" id="cards-post-title" maxlength="100" placeholder="카드뉴스 제목을 입력하세요">
@@ -546,6 +644,7 @@ function openCardsPostModal() {
       e.preventDefault();
       const title = modal.querySelector('#cards-post-title').value.trim();
       const body = modal.querySelector('#cards-post-body').value.trim();
+      const category = modal.querySelector('#cards-post-category').value;
       const file = fileInput.files[0];
       if (!file) { cardsToast('카드 이미지를 선택해주세요.', 'error'); return; }
       const token = window.Admin?.getToken();
@@ -554,7 +653,7 @@ function openCardsPostModal() {
       const submit = modal.querySelector('#cards-post-submit');
       submit.disabled = true; submit.textContent = '올리는 중…';
       try {
-        await uploadCardsPost(file, title, body, token);
+        await uploadCardsPost(file, title, body, category, token);
         close();
         cardsToast('카드가 등록되었습니다.', 'success');
         renderStage();
@@ -565,16 +664,19 @@ function openCardsPostModal() {
       }
     });
   }
+  // 디폴트 카테고리 적용
+  const select = modal.querySelector('#cards-post-category');
+  if (select) select.value = defaultCategory;
   modal.classList.add('is-open');
   document.body.style.overflow = 'hidden';
   setTimeout(() => modal.querySelector('#cards-post-title').focus(), 50);
 }
 
-async function uploadCardsPost(file, title, body, token) {
+async function uploadCardsPost(file, title, body, category, token) {
   const metadata = {
     name: file.name,
     parents: [CARDS_GDRIVE_FOLDER_ID],
-    description: JSON.stringify({ title: title || '', body: body || '' })
+    description: JSON.stringify({ title: title || '', body: body || '', category: category || '' })
   };
   const form = new FormData();
   form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
@@ -588,6 +690,7 @@ async function uploadCardsPost(file, title, body, token) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error?.message || `HTTP ${res.status}`);
   }
+  invalidateDriveCache();
 }
 
 async function deleteRecentCard(id, label) {
@@ -603,6 +706,7 @@ async function deleteRecentCard(id, label) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error?.message || `HTTP ${res.status}`);
     }
+    invalidateDriveCache();
     cardsToast('삭제 완료', 'success');
     renderStage();
   } catch (e) {
@@ -643,8 +747,14 @@ function updateLightbox() {
   const c = lbCards[lbIndex];
   if (!c) return;
   lbImg.src = c.src;
-  lbImg.alt = `카드 ${c.idx}`;
-  lbCounter.textContent = `${lbIndex + 1} / ${lbCards.length}`;
+  lbImg.alt = c.alt || c.label || `카드 ${lbIndex + 1}`;
+
+  let html = `${lbIndex + 1} / ${lbCards.length}`;
+  if (c.isDrive && (c.title || c.body)) {
+    if (c.title) html += `<br><strong style="display:block; font-size:15px; margin-top:6px; font-weight:800; line-height:1.3;">${escapeHtml(c.title)}</strong>`;
+    if (c.body)  html += `<span style="display:block; font-size:13px; opacity:0.88; line-height:1.55; margin-top:6px; max-width:520px; max-height:120px; overflow:auto;">${escapeHtml(c.body).replace(/\n/g, '<br>')}</span>`;
+  }
+  lbCounter.innerHTML = html;
   lbPrev.disabled = lbIndex === 0;
   lbNext.disabled = lbIndex === lbCards.length - 1;
 }

@@ -2877,10 +2877,32 @@ section { padding: 64px 0; }
 }
 
 .post-field input[type="text"]:focus,
-.post-field textarea:focus {
+.post-field textarea:focus,
+.post-field select.post-select:focus {
   outline: none;
   border-color: var(--red);
 }
+
+.post-field select.post-select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--black);
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .15s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23666' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.post-field select.post-select:hover { border-color: var(--red); }
 
 .post-field textarea { min-height: 120px; line-height: 1.6; }
 
