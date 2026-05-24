@@ -2542,7 +2542,8 @@ section { padding: 64px 0; }
   border: 1px solid var(--gray-300);
   border-radius: 12px;
   box-shadow: var(--shadow-md);
-  min-width: 240px;
+  min-width: 260px;
+  max-width: calc(100vw - 24px);
   padding: 8px;
   opacity: 0;
   visibility: hidden;
@@ -2550,6 +2551,73 @@ section { padding: 64px 0; }
   transition: opacity .15s, transform .15s, visibility .15s;
   z-index: 60;
 }
+
+@media (max-width: 480px) {
+  .admin-menu {
+    /* 화면 우측 안으로 — 잘림 방지 */
+    right: -4px;
+    min-width: min(260px, calc(100vw - 24px));
+  }
+}
+
+/* 글자 크기 컨트롤 */
+.admin-font-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--gray-300);
+  margin-bottom: 6px;
+}
+
+.afc-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray-700);
+  white-space: nowrap;
+}
+
+.afc-buttons {
+  display: inline-flex;
+  align-items: center;
+  background: var(--gray-100);
+  border-radius: 999px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.afc-btn {
+  width: 28px;
+  height: 28px;
+  background: #fff;
+  border: 1px solid var(--gray-300);
+  color: var(--gray-700);
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.afc-btn:hover { background: var(--red); color: #fff; border-color: var(--red); }
+
+.afc-level {
+  background: transparent;
+  border: none;
+  color: var(--gray-700);
+  font-weight: 800;
+  font-size: 12px;
+  min-width: 44px;
+  text-align: center;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.afc-level:hover { color: var(--red); text-decoration: underline; }
 
 .admin-user:hover .admin-menu,
 .admin-user:focus-within .admin-menu {

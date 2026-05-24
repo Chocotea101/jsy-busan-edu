@@ -106,6 +106,7 @@ const Admin = (function () {
 
     if (session) {
       const initials = session.name ? session.name.charAt(0) : '✓';
+      const scale = parseFloat(localStorage.getItem('jsy_font_scale') || '1');
       slot.innerHTML = `
         <div class="admin-user" tabindex="0">
           ${session.picture
@@ -115,12 +116,26 @@ const Admin = (function () {
           <span class="admin-caret">▾</span>
           <div class="admin-menu">
             <div class="admin-menu-email">${escapeHtml(session.email || '')}</div>
+
+            <div class="admin-font-control">
+              <span class="afc-label">글자 크기</span>
+              <div class="afc-buttons">
+                <button class="afc-btn" id="afc-out" aria-label="작게">−</button>
+                <button class="afc-level" id="afc-level" aria-label="기본 크기로">${Math.round(scale * 100)}%</button>
+                <button class="afc-btn" id="afc-in" aria-label="크게">+</button>
+              </div>
+            </div>
+
             <a class="admin-menu-link" href="activities.html">활동사진 관리</a>
+            <a class="admin-menu-link" href="cards.html#recent">카드뉴스 관리</a>
             <button class="admin-menu-link" id="admin-logout">로그아웃</button>
           </div>
         </div>
       `;
       document.getElementById('admin-logout').addEventListener('click', logout);
+      document.getElementById('afc-in').addEventListener('click', () => changeFontScale(0.1));
+      document.getElementById('afc-out').addEventListener('click', () => changeFontScale(-0.1));
+      document.getElementById('afc-level').addEventListener('click', () => setFontScale(1));
     } else {
       slot.innerHTML = `
         <button class="admin-login-btn" id="admin-login">
@@ -152,6 +167,40 @@ const Admin = (function () {
       else window.addEventListener('gis:loaded', () => initGIS());
     }
   };
+})();
+
+/* ===== 글자 크기 (zoom 기반) ===== */
+const FONT_SCALE_KEY = 'jsy_font_scale';
+const SCALE_MIN = 0.8;
+const SCALE_MAX = 1.6;
+
+function applyFontScale(scale) {
+  // Chromium/Safari: zoom 지원. Firefox: transform 부적합 → MozTextSizeAdjust 시도
+  document.body.style.zoom = scale;
+  // 부모 html에도 줘서 일부 요소(헤더 sticky 등)도 일관되게
+  if (CSS.supports('zoom: 1')) {
+    document.documentElement.style.zoom = scale;
+  }
+}
+
+function setFontScale(scale) {
+  scale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, scale));
+  localStorage.setItem(FONT_SCALE_KEY, scale);
+  applyFontScale(scale);
+  // 메뉴 텍스트 갱신
+  const lvl = document.getElementById('afc-level');
+  if (lvl) lvl.textContent = `${Math.round(scale * 100)}%`;
+}
+
+function changeFontScale(delta) {
+  const cur = parseFloat(localStorage.getItem(FONT_SCALE_KEY) || '1');
+  setFontScale(Math.round((cur + delta) * 10) / 10);
+}
+
+// 페이지 진입 즉시 저장된 크기 적용
+(function initFontScale() {
+  const saved = parseFloat(localStorage.getItem(FONT_SCALE_KEY) || '1');
+  if (saved !== 1) applyFontScale(saved);
 })();
 
 /* ===== GIS 스크립트 로드 완료 알림 ===== */
