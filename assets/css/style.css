@@ -1585,14 +1585,14 @@ section { padding: 64px 0; }
   min-height: 100vh;
 }
 
-/* 큰 모드 토글 (정책 / 시리즈) */
+/* 큰 모드 토글 (정책 / 시리즈 / 신규) */
 .cards-mode {
   display: flex;
   background: #fff;
   padding: 6px;
   border-radius: 999px;
   border: 1px solid var(--gray-300);
-  max-width: 480px;
+  max-width: 600px;
   margin: 0 auto 28px;
   box-shadow: var(--shadow-sm);
 }
@@ -1847,6 +1847,23 @@ section { padding: 64px 0; }
   border-radius: 999px;
   letter-spacing: 0.05em;
   backdrop-filter: blur(4px);
+}
+
+/* 신규 카드 — 제목 오버레이 */
+.vcard.recent-card { cursor: zoom-in; }
+
+.vcard.recent-card .recent-card-title {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 32px 20px 18px;
+  background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 60%, transparent 100%);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  z-index: 1;
+  pointer-events: none;
 }
 
 @media (max-width: 600px) {

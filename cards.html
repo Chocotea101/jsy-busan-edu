@@ -39,7 +39,11 @@
     <div class="cards-mode" role="tablist" aria-label="카드 종류">
       <button data-mode="policy" class="is-active">정책 카드</button>
       <button data-mode="series">시리즈 카드</button>
+      <button data-mode="recent">신규 카드</button>
     </div>
+
+    <!-- 관리자 툴바 (신규 카드 모드일 때만 노출) -->
+    <div id="cards-admin-toolbar"></div>
 
     <!-- 하위 탭 (공약 1~6 또는 시리즈 1~2) -->
     <div class="cards-tabs" id="cards-tabs"></div>
