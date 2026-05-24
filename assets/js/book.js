@@ -5,9 +5,9 @@
    - p2(후보자정보공개자료)는 책자 뷰에서 제외
    ============================================================ */
 
-const PAGE_NUMBERS = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-const PAGES = PAGE_NUMBERS.map(n =>
-  `assets/img/pages-hd/page-${String(n).padStart(2, '0')}.webp`
+/* 새 책자 이미지(공보물 11장) — 1~11번 순차 */
+const PAGES = Array.from({ length: 11 }, (_, i) =>
+  `assets/img/pages-hd/page-${String(i + 1).padStart(2, '0')}.jpg`
 );
 
 /* 원본 페이지 비율: 2079×2953 = 1 : 1.42 */
