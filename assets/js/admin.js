@@ -106,7 +106,7 @@ const Admin = (function () {
 
     if (session) {
       const initials = session.name ? session.name.charAt(0) : '✓';
-      const scale = parseFloat(localStorage.getItem('jsy_font_scale') || '1');
+      const scale = siteSettings.fontScale || 1;
       slot.innerHTML = `
         <div class="admin-user" tabindex="0">
           ${session.picture
@@ -118,12 +118,15 @@ const Admin = (function () {
             <div class="admin-menu-email">${escapeHtml(session.email || '')}</div>
 
             <div class="admin-font-control">
-              <span class="afc-label">글자 크기</span>
-              <div class="afc-buttons">
-                <button class="afc-btn" id="afc-out" aria-label="작게">−</button>
-                <button class="afc-level" id="afc-level" aria-label="기본 크기로">${Math.round(scale * 100)}%</button>
-                <button class="afc-btn" id="afc-in" aria-label="크게">+</button>
+              <div class="afc-row">
+                <span class="afc-label">사이트 글자 크기</span>
+                <div class="afc-buttons">
+                  <button class="afc-btn" id="afc-out" aria-label="작게">−</button>
+                  <button class="afc-level" id="afc-level" aria-label="기본 크기로">${Math.round(scale * 100)}%</button>
+                  <button class="afc-btn" id="afc-in" aria-label="크게">+</button>
+                </div>
               </div>
+              <div class="afc-hint">모든 방문자에게 적용됩니다</div>
             </div>
 
             <a class="admin-menu-link" href="activities.html">활동사진 관리</a>
@@ -169,39 +172,155 @@ const Admin = (function () {
   };
 })();
 
-/* ===== 글자 크기 (zoom 기반) ===== */
-const FONT_SCALE_KEY = 'jsy_font_scale';
+/* ============================================================
+   사이트 전역 설정 — Drive 폴더 description에 JSON 저장
+   - 관리자가 변경 → Drive에 저장 → 모든 방문자에게 즉시 반영
+   - 빠른 로딩 위해 sessionStorage 캐시 + 백그라운드 갱신
+   ============================================================ */
+
+const SETTINGS_FOLDER_ID = '1nDWyrIFyHFc5l-b5jPPB3cWdszAxbuB9'; // 카드뉴스 폴더 description 활용
+const SETTINGS_API_KEY = 'AIzaSyA6GCjF7kj-ClInis5sbjWxKQ7B8RIZfTI';
+const SETTINGS_CACHE_KEY = 'jsy_site_settings_v1';
+const FONT_SCALE_KEY = 'jsy_font_scale'; // 비로그인 폴백용
+
 const SCALE_MIN = 0.8;
 const SCALE_MAX = 1.6;
 
+let siteSettings = {};
+
 function applyFontScale(scale) {
-  // Chromium/Safari: zoom 지원. Firefox: transform 부적합 → MozTextSizeAdjust 시도
+  if (!scale || scale === 1) {
+    document.body.style.zoom = '';
+    document.documentElement.style.zoom = '';
+    return;
+  }
   document.body.style.zoom = scale;
-  // 부모 html에도 줘서 일부 요소(헤더 sticky 등)도 일관되게
-  if (CSS.supports('zoom: 1')) {
+  if (CSS.supports && CSS.supports('zoom: 1')) {
     document.documentElement.style.zoom = scale;
   }
 }
 
-function setFontScale(scale) {
-  scale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, scale));
-  localStorage.setItem(FONT_SCALE_KEY, scale);
-  applyFontScale(scale);
+function applyAllSettings() {
+  applyFontScale(siteSettings.fontScale || 1);
   // 메뉴 텍스트 갱신
   const lvl = document.getElementById('afc-level');
-  if (lvl) lvl.textContent = `${Math.round(scale * 100)}%`;
+  if (lvl) lvl.textContent = `${Math.round((siteSettings.fontScale || 1) * 100)}%`;
+}
+
+async function fetchSiteSettings() {
+  if (!SETTINGS_FOLDER_ID || !SETTINGS_API_KEY) return {};
+  try {
+    const url = `https://www.googleapis.com/drive/v3/files/${SETTINGS_FOLDER_ID}?fields=description&key=${SETTINGS_API_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) return {};
+    const data = await res.json();
+    if (!data.description) return {};
+    return JSON.parse(data.description);
+  } catch (e) {
+    console.warn('[Settings] fetch failed:', e);
+    return {};
+  }
+}
+
+async function pushSiteSettings(updates) {
+  const token = Admin.getToken();
+  if (!token) throw new Error('로그인이 필요합니다.');
+
+  // 최신 가져와서 머지 (다른 관리자 변경사항 보존)
+  const current = await fetchSiteSettings();
+  const merged = { ...current, ...updates };
+
+  const url = `https://www.googleapis.com/drive/v3/files/${SETTINGS_FOLDER_ID}`;
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ description: JSON.stringify(merged) })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+  siteSettings = merged;
+  sessionStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(merged));
+  applyAllSettings();
+  return merged;
+}
+
+// 페이지 진입 즉시 — 캐시에서 빠르게 적용
+(function initSettingsFromCache() {
+  try {
+    const cached = sessionStorage.getItem(SETTINGS_CACHE_KEY);
+    if (cached) {
+      siteSettings = JSON.parse(cached);
+    } else {
+      // 캐시 없으면 로컬 폴백 (이전 버전 사용자)
+      const localScale = parseFloat(localStorage.getItem(FONT_SCALE_KEY) || '1');
+      if (localScale !== 1) siteSettings.fontScale = localScale;
+    }
+    applyAllSettings();
+  } catch (e) {
+    console.warn('[Settings] init from cache failed:', e);
+  }
+})();
+
+// 백그라운드에서 최신 가져오기
+(async function refreshSettings() {
+  const fresh = await fetchSiteSettings();
+  if (fresh && Object.keys(fresh).length > 0) {
+    siteSettings = fresh;
+    sessionStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(fresh));
+    applyAllSettings();
+  }
+})();
+
+function setFontScale(scale) {
+  scale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, scale));
+  scale = Math.round(scale * 10) / 10;
+
+  // UI 즉시 반영 (낙관적 업데이트)
+  siteSettings.fontScale = scale;
+  applyAllSettings();
+
+  // 로그인 상태면 Drive에 저장 → 모든 방문자에게
+  if (Admin.isLoggedIn()) {
+    pushSiteSettings({ fontScale: scale })
+      .then(() => {
+        showFontScaleNote('✓ 모든 사용자에게 적용됨');
+      })
+      .catch(err => {
+        console.error('[Settings] push failed:', err);
+        showFontScaleNote('⚠ 저장 실패 — 본인에게만 적용됩니다');
+      });
+  } else {
+    // 비로그인 — 본인 브라우저에만
+    localStorage.setItem(FONT_SCALE_KEY, scale);
+  }
 }
 
 function changeFontScale(delta) {
-  const cur = parseFloat(localStorage.getItem(FONT_SCALE_KEY) || '1');
-  setFontScale(Math.round((cur + delta) * 10) / 10);
+  const cur = siteSettings.fontScale || 1;
+  setFontScale(cur + delta);
 }
 
-// 페이지 진입 즉시 저장된 크기 적용
-(function initFontScale() {
-  const saved = parseFloat(localStorage.getItem(FONT_SCALE_KEY) || '1');
-  if (saved !== 1) applyFontScale(saved);
-})();
+function showFontScaleNote(msg) {
+  let note = document.getElementById('afc-note');
+  if (!note) {
+    const ctrl = document.querySelector('.admin-font-control');
+    if (!ctrl) return;
+    note = document.createElement('div');
+    note.id = 'afc-note';
+    note.className = 'afc-note';
+    ctrl.appendChild(note);
+  }
+  note.textContent = msg;
+  note.style.opacity = '1';
+  clearTimeout(note._timer);
+  note._timer = setTimeout(() => { note.style.opacity = '0'; }, 2500);
+}
 
 /* ===== GIS 스크립트 로드 완료 알림 ===== */
 window.addEventListener('load', () => {

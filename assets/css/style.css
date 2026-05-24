@@ -2562,13 +2562,32 @@ section { padding: 64px 0; }
 
 /* 글자 크기 컨트롤 */
 .admin-font-control {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--gray-300);
+  margin-bottom: 6px;
+}
+
+.afc-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--gray-300);
-  margin-bottom: 6px;
+}
+
+.afc-hint {
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-top: 6px;
+  letter-spacing: 0.02em;
+}
+
+.afc-note {
+  font-size: 11px;
+  color: var(--c-5);
+  font-weight: 700;
+  margin-top: 4px;
+  opacity: 0;
+  transition: opacity .3s;
 }
 
 .afc-label {
