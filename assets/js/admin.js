@@ -96,6 +96,8 @@ const Admin = (function () {
     if (session?.token && typeof google !== 'undefined') {
       try { google.accounts.oauth2.revoke(session.token, () => {}); } catch {}
     }
+    document.body.classList.remove('admin-edit-mode');
+    if (typeof detachEditClickHandlers === 'function') detachEditClickHandlers();
     saveSession(null);
   }
 
@@ -131,6 +133,7 @@ const Admin = (function () {
 
             <a class="admin-menu-link" href="activities.html">활동사진 관리</a>
             <a class="admin-menu-link" href="cards.html#recent">카드뉴스 관리</a>
+            <button class="admin-menu-link" id="admin-edit-toggle">✏️ 텍스트 편집 모드</button>
             <button class="admin-menu-link" id="admin-logout">로그아웃</button>
           </div>
         </div>
@@ -139,6 +142,11 @@ const Admin = (function () {
       document.getElementById('afc-in').addEventListener('click', () => changeFontScale(0.1));
       document.getElementById('afc-out').addEventListener('click', () => changeFontScale(-0.1));
       document.getElementById('afc-level').addEventListener('click', () => setFontScale(1));
+      document.getElementById('admin-edit-toggle').addEventListener('click', toggleEditMode);
+      // 로그인 직후 편집 모드는 꺼진 상태에서 시작 → 텍스트 자연스럽게 보이고 필요 시 토글
+      if (document.body.classList.contains('admin-edit-mode')) {
+        document.getElementById('admin-edit-toggle').textContent = '✏️ 편집 모드 끄기';
+      }
     } else {
       slot.innerHTML = `
         <button class="admin-login-btn" id="admin-login">
@@ -202,9 +210,22 @@ function applyFontScale(scale) {
 
 function applyAllSettings() {
   applyFontScale(siteSettings.fontScale || 1);
+  applySiteTexts();
   // 메뉴 텍스트 갱신
   const lvl = document.getElementById('afc-level');
   if (lvl) lvl.textContent = `${Math.round((siteSettings.fontScale || 1) * 100)}%`;
+}
+
+/* ===== 사이트 텍스트 (요소별 내용 + 크기) 적용 ===== */
+function applySiteTexts() {
+  const texts = siteSettings.texts || {};
+  document.querySelectorAll('[data-edit]').forEach(el => {
+    const key = el.dataset.edit;
+    const data = texts[key];
+    if (!data) return;
+    if (typeof data.html === 'string' && data.html.length > 0) el.innerHTML = data.html;
+    if (data.fontSize) el.style.fontSize = data.fontSize + 'px';
+  });
 }
 
 async function fetchSiteSettings() {
@@ -304,6 +325,158 @@ function setFontScale(scale) {
 function changeFontScale(delta) {
   const cur = siteSettings.fontScale || 1;
   setFontScale(cur + delta);
+}
+
+/* ============================================================
+   텍스트 편집 모드 (클릭 → 모달로 내용·크기 수정)
+   ============================================================ */
+
+function toggleEditMode() {
+  const on = !document.body.classList.contains('admin-edit-mode');
+  document.body.classList.toggle('admin-edit-mode', on);
+  if (on) attachEditClickHandlers();
+  else detachEditClickHandlers();
+  const btn = document.getElementById('admin-edit-toggle');
+  if (btn) btn.textContent = on ? '✏️ 편집 모드 끄기' : '✏️ 텍스트 편집 모드';
+}
+
+function attachEditClickHandlers() {
+  document.querySelectorAll('[data-edit]').forEach(el => {
+    if (el._editHandler) return;
+    el._editHandler = e => {
+      e.preventDefault();
+      e.stopPropagation();
+      openTextEditModal(el.dataset.edit, el);
+    };
+    el.addEventListener('click', el._editHandler);
+  });
+}
+
+function detachEditClickHandlers() {
+  document.querySelectorAll('[data-edit]').forEach(el => {
+    if (el._editHandler) {
+      el.removeEventListener('click', el._editHandler);
+      delete el._editHandler;
+    }
+  });
+}
+
+function openTextEditModal(key, element) {
+  // 현재 값
+  const currentHtml = element.innerHTML.trim();
+  const computedSize = parseFloat(getComputedStyle(element).fontSize);
+  const currentSize = Math.round(computedSize);
+
+  let modal = document.getElementById('text-edit-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'text-edit-modal';
+    modal.className = 'post-modal';
+    modal.innerHTML = `
+      <div class="post-modal-backdrop"></div>
+      <div class="post-modal-body" style="max-width:540px;">
+        <button class="post-modal-close" type="button" aria-label="닫기">✕</button>
+        <h3>텍스트 편집</h3>
+        <p style="font-size:13px; color:var(--gray-500); margin:0 0 16px; word-break:break-all;">
+          <strong id="tem-key" style="color:var(--gray-700);"></strong>
+        </p>
+        <form id="text-edit-form">
+          <label class="post-field">
+            <span class="post-label">내용 <small>(줄바꿈은 &lt;br&gt; 또는 새 줄)</small></span>
+            <textarea id="tem-content" rows="4"></textarea>
+          </label>
+          <label class="post-field">
+            <span class="post-label">글자 크기 <span id="tem-size-label" style="color:var(--red); font-weight:900;">— px</span></span>
+            <input type="range" id="tem-size" min="10" max="120" step="1" class="tem-size-slider">
+            <div class="tem-size-preview" id="tem-size-preview">미리보기 텍스트</div>
+          </label>
+          <div class="post-modal-actions">
+            <button type="button" class="btn btn-ghost" id="tem-reset" style="flex:0;">초기값</button>
+            <button type="button" class="btn btn-ghost" id="tem-cancel">취소</button>
+            <button type="submit" class="btn btn-primary" id="tem-save">저장</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    const close = () => {
+      modal.classList.remove('is-open');
+      document.body.style.overflow = '';
+    };
+    modal.querySelector('.post-modal-backdrop').addEventListener('click', close);
+    modal.querySelector('.post-modal-close').addEventListener('click', close);
+    modal.querySelector('#tem-cancel').addEventListener('click', close);
+
+    const sizeInput = modal.querySelector('#tem-size');
+    const sizeLabel = modal.querySelector('#tem-size-label');
+    const preview = modal.querySelector('#tem-size-preview');
+    const contentArea = modal.querySelector('#tem-content');
+
+    sizeInput.addEventListener('input', () => {
+      const v = sizeInput.value;
+      sizeLabel.textContent = `${v} px`;
+      preview.style.fontSize = v + 'px';
+    });
+
+    contentArea.addEventListener('input', () => {
+      preview.innerHTML = contentArea.value.replace(/\n/g, '<br>') || '미리보기 텍스트';
+    });
+
+    modal.querySelector('#tem-reset').addEventListener('click', async () => {
+      if (!confirm('이 텍스트를 원래 사이트 기본값으로 되돌릴까요?')) return;
+      try {
+        const current = await fetchSiteSettings();
+        const texts = { ...(current.texts || {}) };
+        delete texts[modal._activeKey];
+        await pushSiteSettings({ texts });
+        close();
+        showFontScaleNote('✓ 초기값으로 복원됨');
+        setTimeout(() => location.reload(), 600);
+      } catch (err) {
+        alert('복원 실패: ' + err.message);
+      }
+    });
+
+    modal.querySelector('#text-edit-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const key = modal._activeKey;
+      const newHtml = modal.querySelector('#tem-content').value.replace(/\n/g, '<br>');
+      const newSize = parseInt(modal.querySelector('#tem-size').value, 10);
+
+      const submit = modal.querySelector('#tem-save');
+      submit.disabled = true; submit.textContent = '저장 중…';
+      try {
+        // 머지
+        const current = await fetchSiteSettings();
+        const texts = { ...(current.texts || {}) };
+        texts[key] = { html: newHtml, fontSize: newSize };
+        await pushSiteSettings({ texts });
+        close();
+        showFontScaleNote('✓ 저장됨 (모든 방문자에게 적용)');
+      } catch (err) {
+        alert('저장 실패: ' + err.message);
+      } finally {
+        submit.disabled = false; submit.textContent = '저장';
+      }
+    });
+  }
+
+  // 모달에 현재 값 채우기
+  modal._activeKey = key;
+  modal.querySelector('#tem-key').textContent = `편집 위치: ${key}`;
+  const contentValue = currentHtml.replace(/<br\s*\/?>/gi, '\n');
+  modal.querySelector('#tem-content').value = contentValue;
+  const sizeInput = modal.querySelector('#tem-size');
+  sizeInput.value = currentSize;
+  modal.querySelector('#tem-size-label').textContent = `${currentSize} px`;
+  const preview = modal.querySelector('#tem-size-preview');
+  preview.style.fontSize = currentSize + 'px';
+  preview.innerHTML = contentValue.replace(/\n/g, '<br>') || '미리보기 텍스트';
+
+  modal.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => modal.querySelector('#tem-content').focus(), 50);
 }
 
 function showFontScaleNote(msg) {

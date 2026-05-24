@@ -2590,6 +2590,89 @@ section { padding: 64px 0; }
   transition: opacity .3s;
 }
 
+/* ============================================================
+   텍스트 편집 모드 (관리자) — data-edit 요소
+   ============================================================ */
+
+body.admin-edit-mode [data-edit] {
+  outline: 2px dashed transparent;
+  outline-offset: 4px;
+  cursor: pointer;
+  transition: outline-color .15s, background-color .15s;
+  position: relative;
+}
+
+body.admin-edit-mode [data-edit]:hover {
+  outline-color: var(--red);
+  background-color: rgba(230, 0, 18, 0.06);
+  border-radius: 6px;
+}
+
+body.admin-edit-mode [data-edit]:hover::after {
+  content: "✏️ 클릭";
+  position: absolute;
+  top: -32px;
+  left: 0;
+  background: var(--red);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 8px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  z-index: 100;
+  white-space: nowrap;
+}
+
+/* ===== 텍스트 편집 모달 - 슬라이더/미리보기 ===== */
+.tem-size-slider {
+  width: 100%;
+  margin: 8px 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: var(--gray-100);
+  border-radius: 999px;
+  outline: none;
+}
+
+.tem-size-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--red);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(230,0,18,0.4);
+  border: 2px solid #fff;
+}
+
+.tem-size-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--red);
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+
+.tem-size-preview {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--gray-50);
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 800;
+  line-height: 1.2;
+  word-break: keep-all;
+  color: var(--black);
+  border: 1px dashed var(--gray-300);
+  max-height: 200px;
+  overflow: auto;
+}
+
 .afc-label {
   font-size: 13px;
   font-weight: 700;
