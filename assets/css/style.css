@@ -1101,7 +1101,7 @@ section { padding: 64px 0; }
   min-height: clamp(420px, calc(100vh - 140px), 1280px);
 }
 
-/* heyzine iframe 책자 — 고화질 자체 렌더링 */
+/* heyzine iframe 책자 — 데스크탑 전용 */
 .book-iframe-wrap {
   position: relative;
   width: 100%;
@@ -1122,12 +1122,266 @@ section { padding: 64px 0; }
   display: block;
 }
 
+/* 데스크탑/모바일 분리 */
+.book-mobile-only { display: none; }
+.book-desktop-only { display: block; }
+
 @media (max-width: 720px) {
-  .book-iframe-wrap {
-    height: calc(100vh - 150px);
-    border-radius: 10px;
-    margin: 10px auto 6px;
-  }
+  .book-desktop-only { display: none !important; }
+  .book-mobile-only { display: block; }
+}
+
+/* ============================================================
+   모바일 책자 — 인스타 카루셀
+   ============================================================ */
+
+.mbook-stage {
+  max-width: 100%;
+  margin: 16px auto 0;
+  padding: 0 8px;
+}
+
+.mbook-carousel {
+  display: flex;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 0;
+  border-radius: 14px;
+  touch-action: pan-x;
+}
+
+.mbook-carousel::-webkit-scrollbar { display: none; }
+
+.mbook-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-50);
+  border-radius: 14px;
+  position: relative;
+  min-height: 70vh;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.mbook-slide img {
+  display: block;
+  max-width: 100%;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.mbook-page-num {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.mbook-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.mbook-arrow {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.22);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+
+.mbook-arrow:hover { background: rgba(255,255,255,0.22); }
+.mbook-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.mbook-counter {
+  font-size: 14px;
+  color: #ddd;
+  font-weight: 700;
+  min-width: 70px;
+  text-align: center;
+}
+
+/* ============================================================
+   모바일 라이트박스 (탭 시 확대)
+   ============================================================ */
+
+.mbook-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(15, 18, 25, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.mbook-lightbox.is-open { display: flex; }
+
+.mbl-stage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 60px 20px;
+}
+
+.mbl-stage.is-zoomed {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.mbl-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  transform-origin: center;
+  transition: transform .2s;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.mbl-stage.is-zoomed img {
+  margin: auto;
+}
+
+.mbl-close,
+.mbl-arrow {
+  position: absolute;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.28);
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, transform .12s;
+  backdrop-filter: blur(6px);
+  z-index: 5;
+}
+
+.mbl-close { top: 14px; right: 14px; width: 44px; height: 44px; font-size: 18px; font-weight: 700; }
+
+.mbl-arrow {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.mbl-prev { left: 8px; }
+.mbl-next { right: 8px; }
+
+.mbl-close:hover,
+.mbl-arrow:hover { background: rgba(255,255,255,0.32); }
+.mbl-arrow:active { transform: translateY(-50%) scale(0.92); }
+.mbl-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.mbl-counter {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13px;
+  z-index: 5;
+  backdrop-filter: blur(6px);
+}
+
+/* 모바일 라이트박스 줌 컨트롤 */
+.mbl-zoom-controls {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 999px;
+  padding: 4px;
+  backdrop-filter: blur(8px);
+  z-index: 5;
+}
+
+.mbl-zoom-btn {
+  width: 36px;
+  height: 36px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mbl-zoom-btn:hover { background: rgba(255,255,255,0.3); }
+.mbl-zoom-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.mbl-zoom-level {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  min-width: 52px;
+  padding: 0 6px;
+  cursor: pointer;
 }
 
 #flipbook {

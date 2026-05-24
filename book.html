@@ -17,17 +17,48 @@
   <a href="pledges.html">공약 보기</a>
 </div>
 
-<div class="book-iframe-wrap">
+<!-- 데스크탑 — heyzine 책 펼침 -->
+<div class="book-iframe-wrap book-desktop-only">
   <iframe
     src="https://heyzine.com/flip-book/a045a3f20e.html"
     title="정승윤 책자형 선거공보"
     allowfullscreen
     allow="fullscreen"
-    loading="lazy"></iframe>
+    id="book-iframe"></iframe>
 </div>
 
-<p class="book-hint">화면 안에서 페이지 모서리를 잡고 넘기거나 좌·우 화살표를 사용하세요. 우상단 메뉴에서 <strong>확대·전체화면</strong>이 가능합니다.</p>
+<!-- 모바일 — 인스타 카루셀 (자체 이미지) -->
+<div class="book-mobile-only">
+  <div class="mbook-stage">
+    <div class="mbook-carousel" id="mbook-carousel"></div>
+    <div class="mbook-controls">
+      <button class="mbook-arrow" id="mbook-prev" aria-label="이전 페이지">←</button>
+      <span class="mbook-counter" id="mbook-counter">1 / 11</span>
+      <button class="mbook-arrow" id="mbook-next" aria-label="다음 페이지">→</button>
+    </div>
+  </div>
+</div>
 
+<p class="book-hint book-desktop-only">화면 안에서 페이지 모서리를 잡고 넘기거나 좌·우 화살표를 사용하세요. 우상단 메뉴에서 <strong>확대·전체화면</strong>이 가능합니다.</p>
+<p class="book-hint book-mobile-only">좌우로 휙휙 넘기며 보세요. 카드를 누르면 크게 볼 수 있습니다.</p>
+
+<!-- 모바일 카루셀용 라이트박스 (탭 시 확대) -->
+<div class="mbook-lightbox" id="mbook-lightbox" role="dialog" aria-modal="true">
+  <button class="mbl-close" id="mbl-close" aria-label="닫기">✕</button>
+  <div class="mbl-zoom-controls">
+    <button class="mbl-zoom-btn" id="mbl-zoom-out" aria-label="축소">−</button>
+    <button class="mbl-zoom-level" id="mbl-zoom-level">100%</button>
+    <button class="mbl-zoom-btn" id="mbl-zoom-in" aria-label="확대">+</button>
+  </div>
+  <button class="mbl-arrow mbl-prev" id="mbl-prev" aria-label="이전">←</button>
+  <button class="mbl-arrow mbl-next" id="mbl-next" aria-label="다음">→</button>
+  <div class="mbl-stage" id="mbl-stage">
+    <img id="mbl-img" alt="">
+  </div>
+  <div class="mbl-counter" id="mbl-counter"></div>
+</div>
+
+<script src="assets/js/book.js"></script>
 <script src="assets/js/common.js"></script>
 </body>
 </html>
