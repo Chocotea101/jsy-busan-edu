@@ -294,6 +294,133 @@ section { padding: 64px 0; }
 [data-edit-img].img-align-center { margin-left: auto; margin-right: auto; }
 [data-edit-img].img-align-right  { margin-left: auto; margin-right: 0;    }
 
+/* ============================================================
+   득표율 메달 카드 (이미지 대신 HTML)
+   ============================================================ */
+
+.award-card {
+  position: relative;
+  width: clamp(220px, 26vw, 280px);
+  background: linear-gradient(145deg, #fff4d4 0%, #f7d878 38%, #e8b94c 68%, #c89530 100%);
+  border-radius: 20px;
+  padding: 14px 18px 18px;
+  box-shadow:
+    0 8px 22px rgba(176, 122, 24, 0.28),
+    inset 0 0 0 2px rgba(255,255,255,0.45),
+    inset 0 0 0 3px rgba(176, 122, 24, 0.25);
+  margin: 8px 0 22px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.08));
+}
+
+/* 상단 호 텍스트 영역 (작은 컬렉터 텍스트) */
+.award-card-ribbon-top {
+  font-size: 10px;
+  font-weight: 800;
+  color: #6e4a0a;
+  text-align: center;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  padding: 4px 4px 10px;
+  border-bottom: 1px dashed rgba(110, 74, 10, 0.3);
+  margin-bottom: 10px;
+}
+
+.award-card-body {
+  text-align: center;
+  position: relative;
+}
+
+.award-card-label {
+  font-size: 15px;
+  font-weight: 900;
+  color: #2a1b00;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.award-card-title {
+  font-size: 19px;
+  font-weight: 900;
+  color: #2a1b00;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.award-card-title strong {
+  color: var(--red);
+  font-weight: 900;
+}
+
+.award-card-names {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5a3e00;
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.award-card-divider {
+  height: 2px;
+  background: linear-gradient(to right, transparent 0%, rgba(110, 74, 10, 0.4) 20%, rgba(110, 74, 10, 0.4) 80%, transparent 100%);
+  margin: 8px 0;
+}
+
+.award-card-result-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #3a2400;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.award-card-percent {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--red);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.award-card-percent small {
+  font-size: 22px;
+  font-weight: 900;
+  margin-left: 1px;
+}
+
+/* 리본 (하단 빨간 띠 두 개) */
+.award-card-ribbon-left,
+.award-card-ribbon-right {
+  position: absolute;
+  bottom: -18px;
+  width: 28px;
+  height: 36px;
+  background: linear-gradient(180deg, #d9092a 0%, #b00220 100%);
+  z-index: -1;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.award-card-ribbon-left {
+  left: 30%;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 70%, 0 100%);
+}
+
+.award-card-ribbon-right {
+  right: 30%;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 70%, 0 100%);
+}
+
+@media (max-width: 480px) {
+  .award-card { width: clamp(200px, 60vw, 240px); padding: 12px 14px 14px; }
+  .award-card-label { font-size: 14px; }
+  .award-card-title { font-size: 17px; }
+  .award-card-percent { font-size: 28px; }
+  .award-card-percent small { font-size: 19px; }
+}
+
 .hero-name {
   margin-top: 28px;
   font-size: clamp(56px, 13vw, 110px);
