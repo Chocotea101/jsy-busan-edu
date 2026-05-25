@@ -283,14 +283,10 @@ section { padding: 64px 0; }
 /* 메달 뱃지 (히어로 영역) */
 .hero-badge {
   display: block;
-  width: 180px;
+  width: clamp(96px, 12vw, 120px);
   height: auto;
-  margin: 6px 0;
-  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.15));
-}
-
-@media (max-width: 480px) {
-  .hero-badge { width: 140px; }
+  margin: 4px 0;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12));
 }
 
 .hero-name {
