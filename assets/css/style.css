@@ -280,6 +280,19 @@ section { padding: 64px 0; }
 
 .chip-red { background: var(--red); color: #fff; border-color: var(--red); }
 
+/* 메달 뱃지 (히어로 영역) */
+.hero-badge {
+  display: block;
+  width: 180px;
+  height: auto;
+  margin: 6px 0;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.15));
+}
+
+@media (max-width: 480px) {
+  .hero-badge { width: 140px; }
+}
+
 .hero-name {
   margin-top: 28px;
   font-size: clamp(56px, 13vw, 110px);
