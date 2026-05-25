@@ -289,6 +289,11 @@ section { padding: 64px 0; }
   filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12));
 }
 
+/* 이미지 정렬 클래스 (관리자가 편집 시 적용) */
+[data-edit-img].img-align-left   { margin-left: 0;    margin-right: auto; }
+[data-edit-img].img-align-center { margin-left: auto; margin-right: auto; }
+[data-edit-img].img-align-right  { margin-left: auto; margin-right: 0;    }
+
 .hero-name {
   margin-top: 28px;
   font-size: clamp(56px, 13vw, 110px);
@@ -2603,7 +2608,8 @@ section { padding: 64px 0; }
    텍스트 편집 모드 (관리자) — data-edit 요소
    ============================================================ */
 
-body.admin-edit-mode [data-edit] {
+body.admin-edit-mode [data-edit],
+body.admin-edit-mode [data-edit-img] {
   outline: 2px dashed transparent;
   outline-offset: 4px;
   cursor: pointer;
@@ -2611,7 +2617,8 @@ body.admin-edit-mode [data-edit] {
   position: relative;
 }
 
-body.admin-edit-mode [data-edit]:hover {
+body.admin-edit-mode [data-edit]:hover,
+body.admin-edit-mode [data-edit-img]:hover {
   outline-color: var(--red);
   background-color: rgba(230, 0, 18, 0.06);
   border-radius: 6px;
@@ -2633,6 +2640,71 @@ body.admin-edit-mode [data-edit]:hover::after {
   z-index: 100;
   white-space: nowrap;
 }
+
+body.admin-edit-mode [data-edit-img] {
+  outline-offset: 2px;
+}
+
+body.admin-edit-mode [data-edit-img]:hover {
+  filter: brightness(1.05);
+}
+
+/* ===== 이미지 편집 모달 - 미리보기/정렬 ===== */
+.iem-preview-wrap {
+  margin-top: 14px;
+  padding: 18px;
+  background: var(--gray-50);
+  border: 1px dashed var(--gray-300);
+  border-radius: 10px;
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.iem-preview-wrap.align-left   { justify-content: flex-start; }
+.iem-preview-wrap.align-center { justify-content: center; }
+.iem-preview-wrap.align-right  { justify-content: flex-end; }
+
+.iem-preview-wrap img {
+  display: block;
+  height: auto;
+  max-width: 100%;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12));
+}
+
+.iem-align-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.iem-align-opt {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--gray-50);
+  border: 1.5px solid var(--gray-300);
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.iem-align-opt:hover { border-color: var(--red); color: var(--red); }
+
+.iem-align-opt:has(input:checked) {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+.iem-align-opt input { display: none; }
 
 /* ===== 텍스트 편집 모달 - 슬라이더/미리보기 ===== */
 .tem-size-slider {

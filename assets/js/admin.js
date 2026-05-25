@@ -211,9 +211,25 @@ function applyFontScale(scale) {
 function applyAllSettings() {
   applyFontScale(siteSettings.fontScale || 1);
   applySiteTexts();
+  applySiteImages();
   // 메뉴 텍스트 갱신
   const lvl = document.getElementById('afc-level');
   if (lvl) lvl.textContent = `${Math.round((siteSettings.fontScale || 1) * 100)}%`;
+}
+
+/* ===== 사이트 이미지 (크기·정렬) 적용 ===== */
+function applySiteImages() {
+  const images = siteSettings.images || {};
+  document.querySelectorAll('[data-edit-img]').forEach(el => {
+    const key = el.dataset.editImg;
+    const data = images[key];
+    if (!data) return;
+    if (data.width) el.style.width = data.width + 'px';
+    if (data.align) {
+      el.classList.remove('img-align-left', 'img-align-center', 'img-align-right');
+      el.classList.add('img-align-' + data.align);
+    }
+  });
 }
 
 /* ===== 사이트 텍스트 (요소별 내용 + 크기) 적용 ===== */
@@ -341,6 +357,7 @@ function toggleEditMode() {
 }
 
 function attachEditClickHandlers() {
+  // 텍스트
   document.querySelectorAll('[data-edit]').forEach(el => {
     if (el._editHandler) return;
     el._editHandler = e => {
@@ -350,6 +367,16 @@ function attachEditClickHandlers() {
     };
     el.addEventListener('click', el._editHandler);
   });
+  // 이미지
+  document.querySelectorAll('[data-edit-img]').forEach(el => {
+    if (el._editImgHandler) return;
+    el._editImgHandler = e => {
+      e.preventDefault();
+      e.stopPropagation();
+      openImageEditModal(el.dataset.editImg, el);
+    };
+    el.addEventListener('click', el._editImgHandler);
+  });
 }
 
 function detachEditClickHandlers() {
@@ -357,6 +384,12 @@ function detachEditClickHandlers() {
     if (el._editHandler) {
       el.removeEventListener('click', el._editHandler);
       delete el._editHandler;
+    }
+  });
+  document.querySelectorAll('[data-edit-img]').forEach(el => {
+    if (el._editImgHandler) {
+      el.removeEventListener('click', el._editImgHandler);
+      delete el._editImgHandler;
     }
   });
 }
@@ -477,6 +510,133 @@ function openTextEditModal(key, element) {
   modal.classList.add('is-open');
   document.body.style.overflow = 'hidden';
   setTimeout(() => modal.querySelector('#tem-content').focus(), 50);
+}
+
+/* ===== 이미지 편집 모달 (크기 + 정렬) ===== */
+function openImageEditModal(key, element) {
+  const currentWidth = Math.round(element.getBoundingClientRect().width);
+  const currentAlign =
+    element.classList.contains('img-align-left') ? 'left' :
+    element.classList.contains('img-align-right') ? 'right' :
+    element.classList.contains('img-align-center') ? 'center' : 'left';
+
+  let modal = document.getElementById('image-edit-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'image-edit-modal';
+    modal.className = 'post-modal';
+    modal.innerHTML = `
+      <div class="post-modal-backdrop"></div>
+      <div class="post-modal-body" style="max-width:480px;">
+        <button class="post-modal-close" type="button" aria-label="닫기">✕</button>
+        <h3>이미지 편집</h3>
+        <p style="font-size:13px; color:var(--gray-500); margin:0 0 16px; word-break:break-all;">
+          <strong id="iem-key" style="color:var(--gray-700);"></strong>
+        </p>
+        <form id="image-edit-form">
+          <label class="post-field">
+            <span class="post-label">이미지 크기 <span id="iem-size-label" style="color:var(--red); font-weight:900;">— px</span></span>
+            <input type="range" id="iem-size" min="40" max="500" step="2" class="tem-size-slider">
+            <div class="iem-preview-wrap">
+              <img id="iem-preview" alt="">
+            </div>
+          </label>
+          <label class="post-field">
+            <span class="post-label">위치 (가로 정렬)</span>
+            <div class="iem-align-row" id="iem-align">
+              <label class="iem-align-opt"><input type="radio" name="iem-align" value="left">왼쪽</label>
+              <label class="iem-align-opt"><input type="radio" name="iem-align" value="center">가운데</label>
+              <label class="iem-align-opt"><input type="radio" name="iem-align" value="right">오른쪽</label>
+            </div>
+          </label>
+          <div class="post-modal-actions">
+            <button type="button" class="btn btn-ghost" id="iem-reset" style="flex:0;">초기값</button>
+            <button type="button" class="btn btn-ghost" id="iem-cancel">취소</button>
+            <button type="submit" class="btn btn-primary" id="iem-save">저장</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    const close = () => {
+      modal.classList.remove('is-open');
+      document.body.style.overflow = '';
+    };
+    modal.querySelector('.post-modal-backdrop').addEventListener('click', close);
+    modal.querySelector('.post-modal-close').addEventListener('click', close);
+    modal.querySelector('#iem-cancel').addEventListener('click', close);
+
+    const sizeInput = modal.querySelector('#iem-size');
+    const sizeLabel = modal.querySelector('#iem-size-label');
+    const preview = modal.querySelector('#iem-preview');
+    const alignWrap = modal.querySelector('#iem-align');
+
+    sizeInput.addEventListener('input', () => {
+      sizeLabel.textContent = `${sizeInput.value} px`;
+      preview.style.width = sizeInput.value + 'px';
+    });
+
+    alignWrap.addEventListener('change', e => {
+      const v = e.target.value;
+      preview.parentElement.classList.remove('align-left', 'align-center', 'align-right');
+      preview.parentElement.classList.add('align-' + v);
+    });
+
+    modal.querySelector('#iem-reset').addEventListener('click', async () => {
+      if (!confirm('이 이미지를 원래 기본 크기·위치로 되돌릴까요?')) return;
+      try {
+        const current = await fetchSiteSettings();
+        const images = { ...(current.images || {}) };
+        delete images[modal._activeKey];
+        await pushSiteSettings({ images });
+        close();
+        showFontScaleNote('✓ 초기값으로 복원됨');
+        setTimeout(() => location.reload(), 600);
+      } catch (err) { alert('복원 실패: ' + err.message); }
+    });
+
+    modal.querySelector('#image-edit-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const key = modal._activeKey;
+      const width = parseInt(modal.querySelector('#iem-size').value, 10);
+      const align = modal.querySelector('input[name="iem-align"]:checked')?.value || 'left';
+      const submit = modal.querySelector('#iem-save');
+      submit.disabled = true; submit.textContent = '저장 중…';
+      try {
+        const current = await fetchSiteSettings();
+        const images = { ...(current.images || {}) };
+        images[key] = { width, align };
+        await pushSiteSettings({ images });
+        close();
+        showFontScaleNote('✓ 저장됨 (모든 방문자에게 적용)');
+      } catch (err) {
+        alert('저장 실패: ' + err.message);
+      } finally {
+        submit.disabled = false; submit.textContent = '저장';
+      }
+    });
+  }
+
+  // 현재 값 채우기
+  modal._activeKey = key;
+  modal.querySelector('#iem-key').textContent = `편집 위치: ${key}`;
+  const sizeInput = modal.querySelector('#iem-size');
+  sizeInput.value = currentWidth;
+  modal.querySelector('#iem-size-label').textContent = `${currentWidth} px`;
+  const preview = modal.querySelector('#iem-preview');
+  preview.src = element.src;
+  preview.style.width = currentWidth + 'px';
+  // 정렬 라디오 선택
+  modal.querySelectorAll('input[name="iem-align"]').forEach(r => {
+    r.checked = r.value === currentAlign;
+  });
+  // 미리보기 정렬
+  preview.parentElement.classList.remove('align-left', 'align-center', 'align-right');
+  preview.parentElement.classList.add('align-' + currentAlign);
+
+  modal.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
 }
 
 function showFontScaleNote(msg) {
