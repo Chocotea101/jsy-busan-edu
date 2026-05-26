@@ -22,15 +22,20 @@ const lightboxCounterEl = document.getElementById('lightbox-counter');
 let posts = [];          // [{id, title, body, createdTime, name}, ...]
 let lightboxIndex = -1;
 
-/* ===== 메타데이터 파싱 ===== */
-function parsePost(file) {
-  let title = '', body = '', pinned = false;
+/* ===== 메타데이터 파싱 =====
+   - parent 있는 파일 = 추가 이미지 (마스터에 묶임)
+   - 마스터 파일 = description에 글 + extras 배열
+*/
+function parseRaw(file) {
+  let title = '', body = '', pinned = false, parent = null, extras = [];
   if (file.description) {
     try {
       const d = JSON.parse(file.description);
       title = d.title || '';
       body = d.body || '';
       pinned = !!d.pinned;
+      parent = d.parent || null;
+      extras = Array.isArray(d.extras) ? d.extras : [];
     } catch {
       body = file.description;
     }
@@ -38,13 +43,22 @@ function parsePost(file) {
   return {
     id: file.id,
     name: file.name,
-    title, body, pinned,
+    title, body, pinned, parent, extras,
     createdTime: file.createdTime
   };
 }
 
-function stringifyPost(title, body, pinned = false) {
-  return JSON.stringify({ title: title || '', body: body || '', pinned: !!pinned });
+function stringifyMaster(title, body, pinned, extras) {
+  return JSON.stringify({
+    title: title || '',
+    body: body || '',
+    pinned: !!pinned,
+    extras: Array.isArray(extras) ? extras : []
+  });
+}
+
+function stringifyExtra(parentId) {
+  return JSON.stringify({ parent: parentId });
 }
 
 /* ===== 상태 메시지 ===== */
@@ -107,7 +121,18 @@ async function loadPosts() {
       throw new Error(err.error?.message || `HTTP ${res.status}`);
     }
     const data = await res.json();
-    posts = (data.files || []).map(parsePost);
+    const all = (data.files || []).map(parseRaw);
+    // 마스터 파일만 표시, 추가 파일은 마스터의 extras로 합침
+    const idMap = new Map(all.map(f => [f.id, f]));
+    posts = all
+      .filter(f => !f.parent)
+      .map(master => {
+        const extraFiles = (master.extras || [])
+          .map(id => idMap.get(id))
+          .filter(Boolean);
+        const imageIds = [master.id, ...extraFiles.map(f => f.id)];
+        return { ...master, imageIds };
+      });
 
     // 핀 게시물 먼저, 그 다음 최신순
     posts.sort((a, b) => {
@@ -145,20 +170,24 @@ function renderToolbar() {
 
 function renderGrid() {
   const logged = window.Admin?.isLoggedIn();
-  gridEl.innerHTML = posts.map((p, i) => `
+  gridEl.innerHTML = posts.map((p, i) => {
+    const imgCount = (p.imageIds || [p.id]).length;
+    return `
     <div class="activity-item ${p.title ? 'has-title' : ''} ${p.pinned ? 'is-pinned' : ''}" data-idx="${i}">
       <img src="${thumbUrl(p.id, 800)}" alt="${escapeAttr(p.title || p.name)}" loading="lazy">
+      ${imgCount > 1 ? `<div class="multi-badge" title="${imgCount}장">📷 ${imgCount}</div>` : ''}
       ${p.pinned ? `<div class="pin-badge" title="고정됨">📌</div>` : ''}
       ${p.title ? `<div class="activity-title">${escapeHtml(p.title)}</div>` : ''}
       ${logged ? `
         <div class="post-actions">
           <button class="post-action-btn pin-btn" data-idx="${i}" data-id="${p.id}" aria-label="${p.pinned ? '고정 해제' : '고정'}" title="${p.pinned ? '고정 해제' : '맨 위 고정'}">${p.pinned ? '📌' : '📍'}</button>
           <button class="post-action-btn edit-btn" data-idx="${i}" aria-label="수정" title="수정">✏️</button>
-          <button class="post-action-btn delete-btn" data-id="${p.id}" data-title="${escapeAttr(p.title || p.name)}" aria-label="삭제" title="삭제">✕</button>
+          <button class="post-action-btn delete-btn" data-id="${p.id}" data-extras="${escapeAttr((p.extras || []).join(','))}" data-title="${escapeAttr(p.title || p.name)}" aria-label="삭제" title="삭제">✕</button>
         </div>
       ` : ''}
     </div>
-  `).join('');
+    `;
+  }).join('');
 
   gridEl.querySelectorAll('.activity-item').forEach(el => {
     el.querySelector('img').addEventListener('click', () => openLightbox(Number(el.dataset.idx)));
@@ -168,14 +197,14 @@ function renderGrid() {
   gridEl.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      onDelete(btn.dataset.id, btn.dataset.title);
+      onDelete(btn.dataset.id, btn.dataset.title, btn.dataset.extras || '');
     });
   });
   gridEl.querySelectorAll('.edit-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       const post = posts[Number(btn.dataset.idx)];
-      openPostModal({ editId: post.id, title: post.title, body: post.body, pinned: post.pinned });
+      openPostModal({ editId: post.id, editPost: post, title: post.title, body: post.body, pinned: post.pinned });
     });
   });
   gridEl.querySelectorAll('.pin-btn').forEach(btn => {
@@ -192,7 +221,7 @@ async function onTogglePin(idx) {
   const token = window.Admin?.getToken();
   if (!token) { toast('로그인이 필요합니다.', 'error'); return; }
   try {
-    await updatePostMeta(post.id, post.title, post.body, !post.pinned, token);
+    await updatePostMeta(post.id, post.title, post.body, !post.pinned, post.extras || [], token);
     toast(post.pinned ? '고정 해제됨' : '맨 위에 고정됨', 'success');
     await loadPosts();
   } catch (e) {
@@ -200,16 +229,67 @@ async function onTogglePin(idx) {
   }
 }
 
-async function updatePostMeta(id, title, body, pinned, token) {
+async function updatePostMeta(id, title, body, pinned, extras, token) {
   const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}`, {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ description: stringifyPost(title, body, pinned) })
+    body: JSON.stringify({ description: stringifyMaster(title, body, pinned, extras || []) })
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error?.message || `HTTP ${res.status}`);
   }
+}
+
+/* 수정 모달의 현재 이미지 리스트 렌더링 */
+function renderEditImagesList() {
+  const modal = document.getElementById('post-modal');
+  const wrap = modal?.querySelector('#post-edit-images');
+  if (!wrap || !modal._editPost) return;
+  const post = modal._editPost;
+  const removed = modal._removedExtras || [];
+  const order = modal._reorderedImageIds || (post.imageIds || [post.id]).slice();
+  const remaining = order.filter(id => !removed.includes(id));
+
+  wrap.innerHTML = `
+    <div class="edit-images-label">현재 이미지 (${remaining.length}장) · 순서 변경: ← → 버튼</div>
+    <div class="edit-images-grid">
+      ${remaining.map((id, i) => `
+        <div class="edit-image-item ${id === post.id ? 'is-master' : ''}" data-id="${id}">
+          <img src="${thumbUrl(id, 400)}" alt="이미지 ${i + 1}">
+          <div class="edit-image-num">${i + 1}${id === post.id ? ' · 대표' : ''}</div>
+          <div class="edit-image-actions">
+            ${i > 0 ? `<button type="button" class="edit-img-btn" data-action="moveUp" data-id="${id}" title="앞으로">◀</button>` : ''}
+            ${i < remaining.length - 1 ? `<button type="button" class="edit-img-btn" data-action="moveDown" data-id="${id}" title="뒤로">▶</button>` : ''}
+            ${id !== post.id ? `<button type="button" class="edit-img-btn edit-img-remove" data-action="remove" data-id="${id}" title="제거">✕</button>` : `<span style="font-size:10px; color:var(--gray-500); padding:0 8px;">대표 사진</span>`}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="edit-images-hint">💡 대표 사진(첫 이미지)은 제거할 수 없습니다. 게시물을 통째로 삭제하려면 카드의 ✕ 버튼을 누르세요.</div>
+  `;
+
+  wrap.querySelectorAll('.edit-img-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if (action === 'remove') {
+        modal._removedExtras = [...(modal._removedExtras || []), id];
+        modal._reorderedImageIds = (modal._reorderedImageIds || []).filter(x => x !== id);
+      } else if (action === 'moveUp' || action === 'moveDown') {
+        const arr = (modal._reorderedImageIds || (post.imageIds || [post.id])).slice();
+        const idx = arr.indexOf(id);
+        const target = action === 'moveUp' ? idx - 1 : idx + 1;
+        if (target < 0 || target >= arr.length) return;
+        // 대표 사진은 항상 첫 자리 유지
+        if (arr[target] === post.id && action === 'moveUp') return;
+        [arr[idx], arr[target]] = [arr[target], arr[idx]];
+        modal._reorderedImageIds = arr;
+      }
+      renderEditImagesList();
+    });
+  });
 }
 
 function escapeAttr(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -242,10 +322,15 @@ function openPostModal(init = {}) {
             <span class="post-label">사진 <small id="post-file-hint">(필수 · 여러 장 선택 가능)</small></span>
             <div class="post-file-drop" id="post-file-drop">
               <input type="file" id="post-file" accept="image/*" multiple required>
-              <div class="post-file-placeholder">클릭하거나 사진을 드래그해서 선택하세요<br><small>여러 장 선택하면 각각 별도 게시물로 올라갑니다</small></div>
+              <div class="post-file-placeholder">클릭하거나 사진을 드래그해서 선택하세요</div>
               <div id="post-file-list" class="post-file-list" style="display:none;"></div>
             </div>
           </label>
+          <label class="post-field" id="post-group-field" style="display:flex; align-items:center; gap:10px;">
+            <input type="checkbox" id="post-group" style="width:18px; height:18px; cursor:pointer;" checked>
+            <span style="font-size:14px; font-weight:700; color:var(--gray-700);">🎴 여러 사진을 한 게시물(카루셀)로 묶기</span>
+          </label>
+          <div id="post-edit-images" class="edit-images-wrap" style="display:none;"></div>
           <label class="post-field" style="display:flex; align-items:center; gap:10px;">
             <input type="checkbox" id="post-pinned" style="width:18px; height:18px; cursor:pointer;">
             <span style="font-size:14px; font-weight:700; color:var(--gray-700);">📌 맨 위에 고정</span>
@@ -288,14 +373,29 @@ function openPostModal(init = {}) {
   // 수정/새 작성 분기
   const isEdit = !!init.editId;
   modal._editId = init.editId || null;
+  modal._editPost = init.editPost || null;
+  modal._removedExtras = []; // 수정 시 제거할 추가 이미지 ID
+  modal._reorderedImageIds = init.editPost ? (init.editPost.imageIds || []).slice() : null;
   modal.querySelector('#post-modal-title').textContent = isEdit ? '글 수정' : '새 글쓰기';
   modal.querySelector('#post-title').value = init.title || '';
   modal.querySelector('#post-body').value = init.body || '';
   modal.querySelector('#post-pinned').checked = !!init.pinned;
-  modal.querySelector('#post-file-field').style.display = isEdit ? 'none' : 'block';
+  modal.querySelector('#post-file-field').style.display = 'block';
+  modal.querySelector('#post-group-field').style.display = isEdit ? 'none' : 'flex';
+  modal.querySelector('#post-edit-images').style.display = isEdit ? 'block' : 'none';
   modal.querySelector('#post-submit').textContent = isEdit ? '저장' : '올리기';
-  // 파일 입력 초기화
-  modal.querySelector('#post-file').value = '';
+  // 수정 모드: 파일 input은 추가 이미지용
+  const fileInputEl = modal.querySelector('#post-file');
+  fileInputEl.value = '';
+  fileInputEl.required = !isEdit;
+  if (isEdit) {
+    modal.querySelector('#post-file-hint').textContent = '(선택 · 새로 추가할 이미지)';
+    modal.querySelector('.post-file-placeholder').innerHTML = '추가로 올릴 이미지를 선택하세요<br><small>여러 장 선택 가능</small>';
+    renderEditImagesList();
+  } else {
+    modal.querySelector('#post-file-hint').textContent = '(필수 · 여러 장 선택 가능)';
+    modal.querySelector('.post-file-placeholder').innerHTML = '클릭하거나 사진을 드래그해서 선택하세요';
+  }
   updateFileList(null);
 
   modal.classList.add('is-open');
@@ -350,9 +450,36 @@ async function onSubmitPost(e) {
 
   try {
     if (editId) {
-      // 수정 모드 — 메타데이터만 PATCH
+      // 수정 모드
+      const post = modal._editPost;
+      const removed = modal._removedExtras || [];
+      const newFiles = Array.from(document.getElementById('post-file').files);
+      let currentImageIds = (modal._reorderedImageIds || post.imageIds || [post.id]).slice();
+
+      // 1. 제거할 추가 이미지 삭제
+      for (let i = 0; i < removed.length; i++) {
+        submitBtn.textContent = `이미지 제거 중… (${i + 1}/${removed.length})`;
+        try {
+          await fetch(`https://www.googleapis.com/drive/v3/files/${removed[i]}`, {
+            method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+          });
+        } catch (err) { console.error('Delete failed:', removed[i], err); }
+        currentImageIds = currentImageIds.filter(id => id !== removed[i]);
+      }
+
+      // 2. 새 이미지 업로드 (extras로 추가)
+      for (let i = 0; i < newFiles.length; i++) {
+        submitBtn.textContent = `새 이미지 올리는 중… (${i + 1}/${newFiles.length})`;
+        try {
+          const newId = await uploadExtraFile(newFiles[i], editId, token);
+          currentImageIds.push(newId);
+        } catch (err) { console.error('Upload failed:', newFiles[i].name, err); }
+      }
+
+      // 3. 마스터 메타데이터 업데이트 (extras = currentImageIds 중 마스터 제외)
+      const extras = currentImageIds.filter(id => id !== editId);
       submitBtn.textContent = '저장 중…';
-      await updatePostMeta(editId, title, body, pinned, token);
+      await updatePostMeta(editId, title, body, pinned, extras, token);
       closePostModal();
       toast('수정되었습니다.', 'success');
       await loadPosts();
@@ -360,22 +487,37 @@ async function onSubmitPost(e) {
       // 새 글 — 다중 파일 업로드
       const files = Array.from(document.getElementById('post-file').files);
       if (files.length === 0) { toast('사진을 선택해주세요.', 'error'); return; }
+      const groupMode = document.getElementById('post-group').checked && files.length > 1;
 
-      let ok = 0, fail = 0;
-      for (let i = 0; i < files.length; i++) {
-        submitBtn.textContent = `올리는 중… (${i + 1}/${files.length})`;
-        try {
-          await uploadPost(files[i], title, body, pinned, token);
-          ok++;
-        } catch (err) {
-          fail++;
-          console.error('Upload failed:', files[i].name, err);
+      if (groupMode) {
+        // 묶음 모드: 첫 파일 = 마스터, 나머지는 extras
+        submitBtn.textContent = `올리는 중… (1/${files.length})`;
+        const masterId = await uploadMasterFile(files[0], title, body, pinned, [], token);
+        const extras = [];
+        for (let i = 1; i < files.length; i++) {
+          submitBtn.textContent = `올리는 중… (${i + 1}/${files.length})`;
+          try {
+            const exId = await uploadExtraFile(files[i], masterId, token);
+            extras.push(exId);
+          } catch (err) { console.error('Extra upload failed:', files[i].name, err); }
         }
+        // 마스터에 extras 기록
+        await updatePostMeta(masterId, title, body, pinned, extras, token);
+        closePostModal();
+        toast(`1개 게시물(이미지 ${files.length}장) 등록됨`, 'success');
+      } else {
+        // 별도 모드: 각 파일 = 별도 게시물
+        let ok = 0, fail = 0;
+        for (let i = 0; i < files.length; i++) {
+          submitBtn.textContent = `올리는 중… (${i + 1}/${files.length})`;
+          try { await uploadMasterFile(files[i], title, body, pinned, [], token); ok++; }
+          catch (err) { fail++; console.error('Upload failed:', files[i].name, err); }
+        }
+        closePostModal();
+        if (fail === 0) toast(`${ok}개 게시물 등록됨`, 'success');
+        else if (ok > 0) toast(`${ok}개 성공 · ${fail}개 실패`, 'error');
+        else toast('업로드 실패 — 폴더 권한 확인', 'error');
       }
-      closePostModal();
-      if (fail === 0) toast(`${ok}장 모두 등록됨`, 'success');
-      else if (ok > 0) toast(`${ok}장 성공 · ${fail}장 실패`, 'error');
-      else toast('업로드 실패 — 폴더 권한을 확인해주세요', 'error');
       await loadPosts();
     }
   } catch (err) {
@@ -387,34 +529,65 @@ async function onSubmitPost(e) {
   }
 }
 
-async function uploadPost(file, title, body, pinned, token) {
+async function uploadMasterFile(file, title, body, pinned, extras, token) {
   const metadata = {
     name: file.name,
     parents: [GDRIVE_FOLDER_ID],
-    description: stringifyPost(title, body, pinned)
+    description: stringifyMaster(title, body, pinned, extras)
   };
   const form = new FormData();
   form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
   form.append('file', file);
-
   const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: form
+    method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error?.message || `HTTP ${res.status}`);
   }
+  const data = await res.json();
+  return data.id;
 }
 
-/* ===== 삭제 ===== */
-async function onDelete(id, label) {
-  if (!confirm(`"${label}" 게시물을 정말 삭제할까요?\n사진과 글이 영구 삭제됩니다.`)) return;
+async function uploadExtraFile(file, parentId, token) {
+  const metadata = {
+    name: file.name,
+    parents: [GDRIVE_FOLDER_ID],
+    description: stringifyExtra(parentId)
+  };
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', file);
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.id;
+}
+
+/* ===== 삭제 (마스터 + extras 함께) ===== */
+async function onDelete(id, label, extrasStr = '') {
+  const extras = extrasStr ? extrasStr.split(',').filter(Boolean) : [];
+  const total = 1 + extras.length;
+  const msg = total > 1
+    ? `"${label}" 게시물(이미지 ${total}장)을 정말 삭제할까요?\n사진과 글이 영구 삭제됩니다.`
+    : `"${label}" 게시물을 정말 삭제할까요?\n사진과 글이 영구 삭제됩니다.`;
+  if (!confirm(msg)) return;
   const token = window.Admin?.getToken();
   if (!token) { toast('로그인이 필요합니다.', 'error'); return; }
 
   try {
+    // extras 먼저 삭제 → 마지막에 마스터
+    for (const exId of extras) {
+      await fetch(`https://www.googleapis.com/drive/v3/files/${exId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    }
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
@@ -430,9 +603,18 @@ async function onDelete(id, label) {
   }
 }
 
-/* ===== 라이트박스 ===== */
+/* ===== 라이트박스 — 게시물 + 게시물 안 다중 이미지 ===== */
+let lbImgIndex = 0; // 같은 게시물 안의 이미지 인덱스
+
+function currentPostImages() {
+  const p = posts[lightboxIndex];
+  if (!p) return [];
+  return (p.imageIds && p.imageIds.length > 0) ? p.imageIds : [p.id];
+}
+
 function openLightbox(idx) {
   lightboxIndex = idx;
+  lbImgIndex = 0;
   updateLightbox();
   lightboxEl.classList.add('is-open');
   document.body.style.overflow = 'hidden';
@@ -441,11 +623,14 @@ function closeLightbox() {
   lightboxEl.classList.remove('is-open');
   document.body.style.overflow = '';
   lightboxIndex = -1;
+  lbImgIndex = 0;
 }
 function updateLightbox() {
   const p = posts[lightboxIndex];
   if (!p) return;
-  lightboxImgEl.src = thumbUrl(p.id, 1600);
+  const imgs = currentPostImages();
+  const curImgId = imgs[lbImgIndex] || p.id;
+  lightboxImgEl.src = thumbUrl(curImgId, 1600);
   lightboxImgEl.alt = p.title || p.name;
 
   const dateStr = p.createdTime ? new Date(p.createdTime).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
@@ -455,10 +640,29 @@ function updateLightbox() {
   if (dateStr) captionHTML += `<div class="lb-date">${dateStr}</div>`;
   if (!captionHTML) captionHTML = `<div class="lb-body">${escapeHtml(p.name.replace(/\.[^.]+$/, ''))}</div>`;
   lightboxCaptionEl.innerHTML = captionHTML;
-  lightboxCounterEl.textContent = `${lightboxIndex + 1} / ${posts.length}`;
+
+  // 카운터: 다중 이미지면 "게시물X/Y · 이미지A/B"
+  if (imgs.length > 1) {
+    lightboxCounterEl.textContent = `게시물 ${lightboxIndex + 1}/${posts.length} · 이미지 ${lbImgIndex + 1}/${imgs.length}`;
+  } else {
+    lightboxCounterEl.textContent = `${lightboxIndex + 1} / ${posts.length}`;
+  }
 }
-function nextPhoto() { if (lightboxIndex < posts.length - 1) { lightboxIndex++; updateLightbox(); } }
-function prevPhoto() { if (lightboxIndex > 0) { lightboxIndex--; updateLightbox(); } }
+// 우→: 같은 게시물 안 다음 이미지 → 끝나면 다음 게시물
+function nextPhoto() {
+  const imgs = currentPostImages();
+  if (lbImgIndex < imgs.length - 1) { lbImgIndex++; updateLightbox(); return; }
+  if (lightboxIndex < posts.length - 1) { lightboxIndex++; lbImgIndex = 0; updateLightbox(); }
+}
+function prevPhoto() {
+  if (lbImgIndex > 0) { lbImgIndex--; updateLightbox(); return; }
+  if (lightboxIndex > 0) {
+    lightboxIndex--;
+    const imgs = currentPostImages();
+    lbImgIndex = imgs.length - 1;
+    updateLightbox();
+  }
+}
 
 document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
 document.getElementById('lightbox-prev').addEventListener('click', prevPhoto);

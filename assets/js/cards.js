@@ -206,27 +206,24 @@ async function renderStage() {
   // 통합 — 핀 Drive 먼저, 정적 8장, 그 다음 일반 Drive (오래된 순)
   const pinnedCards = driveCards.filter(p => p.pinned);
   const normalCards = driveCards.filter(p => !p.pinned);
+  const mapDrive = p => ({
+    src: driveThumbUrl(p.id, 1200),
+    alt: p.title || p.name,
+    isDrive: true, id: p.id, pinned: p.pinned,
+    title: p.title, body: p.body,
+    imageIds: p.imageIds || [p.id],
+    extras: p.extras || [],
+    label: p.title || p.name
+  });
   const cards = [
-    ...pinnedCards.map(p => ({
-      src: driveThumbUrl(p.id, 1200),
-      alt: p.title || p.name,
-      isDrive: true, id: p.id, pinned: true,
-      title: p.title, body: p.body,
-      label: p.title || p.name
-    })),
+    ...pinnedCards.map(mapDrive),
     ...staticCards.map(c => ({
       src: c.src,
       alt: `${cfg.groupLabel(state.group)} 카드 ${c.idx}`,
       isDrive: false,
       label: `카드 ${c.idx}`
     })),
-    ...normalCards.map(p => ({
-      src: driveThumbUrl(p.id, 1200),
-      alt: p.title || p.name,
-      isDrive: true, id: p.id, pinned: false,
-      title: p.title, body: p.body,
-      label: p.title || p.name
-    }))
+    ...normalCards.map(mapDrive)
   ];
 
   const container = document.getElementById('cards-container');
@@ -253,21 +250,25 @@ async function renderStage() {
     ? `${cards.length}장${adminInfo} · 좌우로 넘기거나 카드를 눌러 크게 보세요`
     : `${cards.length}장${adminInfo} · 카드를 눌러 크게 보거나 스크롤하며 보세요`;
 
-  container.innerHTML = cards.map((c, i) => `
+  container.innerHTML = cards.map((c, i) => {
+    const imgCount = (c.imageIds || []).length;
+    return `
     <figure class="vcard ${c.isDrive ? 'is-drive' : ''} ${c.pinned ? 'is-pinned' : ''}" data-idx="${i}">
       <img src="${c.src}" alt="${escapeAttr(c.alt)}" loading="${i < 2 ? 'eager' : 'lazy'}">
       <figcaption class="vcard-num">${i + 1} / ${cards.length}</figcaption>
+      ${c.isDrive && imgCount > 1 ? `<div class="multi-badge" title="${imgCount}장">📷 ${imgCount}</div>` : ''}
       ${c.isDrive && c.pinned ? `<div class="pin-badge" title="고정됨">📌</div>` : ''}
       ${c.isDrive && c.title ? `<div class="recent-card-title">${escapeHtml(c.title)}</div>` : ''}
       ${c.isDrive && logged ? `
         <div class="post-actions">
           <button class="post-action-btn pin-btn" data-id="${c.id}" data-pinned="${c.pinned ? '1' : '0'}" aria-label="${c.pinned ? '고정 해제' : '고정'}" title="${c.pinned ? '고정 해제' : '맨 위 고정'}">${c.pinned ? '📌' : '📍'}</button>
           <button class="post-action-btn edit-btn" data-id="${c.id}" aria-label="수정" title="수정">✏️</button>
-          <button class="post-action-btn delete-btn" data-id="${c.id}" data-title="${escapeAttr(c.label)}" aria-label="삭제" title="삭제">✕</button>
+          <button class="post-action-btn delete-btn" data-id="${c.id}" data-extras="${escapeAttr((c.extras || []).join(','))}" data-title="${escapeAttr(c.label)}" aria-label="삭제" title="삭제">✕</button>
         </div>
       ` : ''}
     </figure>
-  `).join('');
+    `;
+  }).join('');
 
   // 카드 클릭 → 라이트박스
   container.querySelectorAll('.vcard').forEach(card => {
@@ -277,7 +278,7 @@ async function renderStage() {
   // 관리자 — Drive 카드 액션
   if (logged) {
     container.querySelectorAll('.delete-btn').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); deleteRecentCard(btn.dataset.id, btn.dataset.title); });
+      btn.addEventListener('click', e => { e.stopPropagation(); deleteRecentCard(btn.dataset.id, btn.dataset.title, btn.dataset.extras || ''); });
     });
     container.querySelectorAll('.edit-btn').forEach(btn => {
       btn.addEventListener('click', e => { e.stopPropagation(); openEditCardModal(btn.dataset.id); });
@@ -407,7 +408,15 @@ async function fetchAllDrivePosts(force = false) {
     const res = await fetch(url);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    allDrivePosts = (data.files || []).map(parseDrivePost);
+    const all = (data.files || []).map(parseDrivePost);
+    // 마스터만, extras를 imageIds로 결합
+    const idMap = new Map(all.map(f => [f.id, f]));
+    allDrivePosts = all
+      .filter(f => !f.parent)
+      .map(master => {
+        const extraFiles = (master.extras || []).map(id => idMap.get(id)).filter(Boolean);
+        return { ...master, imageIds: [master.id, ...extraFiles.map(f => f.id)] };
+      });
     allDriveTime = Date.now();
     return allDrivePosts;
   } catch (e) {
@@ -419,16 +428,18 @@ async function fetchAllDrivePosts(force = false) {
 function invalidateDriveCache() { allDrivePosts = null; }
 
 function parseDrivePost(file) {
-  let title = '', body = '', category = '', pinned = false;
+  let title = '', body = '', category = '', pinned = false, parent = null, extras = [];
   if (file.description) {
     try {
       const d = JSON.parse(file.description);
       title = d.title || ''; body = d.body || '';
       category = d.category || ''; pinned = !!d.pinned;
+      parent = d.parent || null;
+      extras = Array.isArray(d.extras) ? d.extras : [];
     }
     catch { body = file.description; }
   }
-  return { id: file.id, name: file.name, title, body, category, pinned, createdTime: file.createdTime };
+  return { id: file.id, name: file.name, title, body, category, pinned, parent, extras, createdTime: file.createdTime };
 }
 
 function sortByPinAndDate(arr, ascByDate = false) {
@@ -496,24 +507,28 @@ async function renderDriveStage(cfg) {
 
     counter.textContent = `${recentPosts.length}장 · 클릭하면 크게 보입니다`;
 
-    wrap.innerHTML = recentPosts.map((p, i) => `
+    wrap.innerHTML = recentPosts.map((p, i) => {
+      const imgCount = (p.imageIds || [p.id]).length;
+      return `
       <figure class="vcard recent-card ${p.title ? 'has-title' : ''} ${p.pinned ? 'is-pinned' : ''}" data-idx="${i}">
         <img src="${driveThumbUrl(p.id, 1200)}" alt="${escapeAttr(p.title || p.name)}" loading="${i < 2 ? 'eager' : 'lazy'}">
+        ${imgCount > 1 ? `<div class="multi-badge" title="${imgCount}장">📷 ${imgCount}</div>` : ''}
         ${p.pinned ? `<div class="pin-badge" title="고정됨">📌</div>` : ''}
         ${p.title ? `<div class="recent-card-title">${escapeHtml(p.title)}</div>` : ''}
         ${logged ? `
           <div class="post-actions">
             <button class="post-action-btn pin-btn" data-id="${p.id}" aria-label="${p.pinned ? '고정 해제' : '고정'}" title="${p.pinned ? '고정 해제' : '맨 위 고정'}">${p.pinned ? '📌' : '📍'}</button>
             <button class="post-action-btn edit-btn" data-id="${p.id}" aria-label="수정" title="수정">✏️</button>
-            <button class="post-action-btn delete-btn" data-id="${p.id}" data-title="${escapeAttr(p.title || p.name)}" aria-label="삭제" title="삭제">✕</button>
+            <button class="post-action-btn delete-btn" data-id="${p.id}" data-extras="${escapeAttr((p.extras || []).join(','))}" data-title="${escapeAttr(p.title || p.name)}" aria-label="삭제" title="삭제">✕</button>
           </div>
         ` : ''}
       </figure>
-    `).join('');
+      `;
+    }).join('');
 
     if (logged) {
       wrap.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', e => { e.stopPropagation(); deleteRecentCard(btn.dataset.id, btn.dataset.title); });
+        btn.addEventListener('click', e => { e.stopPropagation(); deleteRecentCard(btn.dataset.id, btn.dataset.title, btn.dataset.extras || ''); });
       });
       wrap.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', e => { e.stopPropagation(); openEditCardModal(btn.dataset.id); });
@@ -632,13 +647,18 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
             <textarea id="cards-post-body" rows="5" maxlength="2000" placeholder="카드뉴스에 함께 띄울 설명을 적어주세요"></textarea>
           </label>
           <label class="post-field" id="cards-post-file-field">
-            <span class="post-label">카드 이미지 <small>(필수 · 여러 장 선택 가능)</small></span>
+            <span class="post-label" id="cards-post-file-label">카드 이미지 <small>(필수 · 여러 장 선택 가능)</small></span>
             <div class="post-file-drop" id="cards-post-file-drop">
               <input type="file" id="cards-post-file" accept="image/*" multiple required>
-              <div class="post-file-placeholder">클릭하거나 카드 이미지를 드래그해서 선택하세요<br><small>여러 장 선택하면 모두 같은 카테고리·글로 함께 올라갑니다</small></div>
+              <div class="post-file-placeholder">클릭하거나 카드 이미지를 드래그해서 선택하세요</div>
               <div id="cards-post-file-list" class="post-file-list" style="display:none;"></div>
             </div>
           </label>
+          <label class="post-field" id="cards-post-group-field" style="display:flex; align-items:center; gap:10px;">
+            <input type="checkbox" id="cards-post-group" style="width:18px; height:18px; cursor:pointer;" checked>
+            <span style="font-size:14px; font-weight:700; color:var(--gray-700);">🎴 여러 사진을 한 카드뉴스(카루셀)로 묶기</span>
+          </label>
+          <div id="cards-edit-images" class="edit-images-wrap" style="display:none;"></div>
           <label class="post-field" style="display:flex; align-items:center; gap:10px;">
             <input type="checkbox" id="cards-post-pinned" style="width:18px; height:18px; cursor:pointer;">
             <span style="font-size:14px; font-weight:700; color:var(--gray-700);">📌 맨 위에 고정</span>
@@ -690,30 +710,66 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
 
       try {
         if (editId) {
+          // 수정 모드 — 이미지 추가/제거/순서 + 메타
+          const post = modal._editPost;
+          const removed = modal._removedExtras || [];
+          const newFiles = Array.from(fileInput.files);
+          let currentImageIds = (modal._reorderedImageIds || post.imageIds || [post.id]).slice();
+
+          for (let i = 0; i < removed.length; i++) {
+            submit.textContent = `이미지 제거 중… (${i + 1}/${removed.length})`;
+            try {
+              await fetch(`https://www.googleapis.com/drive/v3/files/${removed[i]}`, {
+                method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+              });
+            } catch (err) { console.error('Delete failed:', removed[i], err); }
+            currentImageIds = currentImageIds.filter(id => id !== removed[i]);
+          }
+
+          for (let i = 0; i < newFiles.length; i++) {
+            submit.textContent = `새 이미지 올리는 중… (${i + 1}/${newFiles.length})`;
+            try {
+              const newId = await uploadCardExtra(newFiles[i], editId, token);
+              currentImageIds.push(newId);
+            } catch (err) { console.error('Upload failed:', newFiles[i].name, err); }
+          }
+
+          const extras = currentImageIds.filter(id => id !== editId);
           submit.textContent = '저장 중…';
-          await updateCardMeta(editId, title, body, category, pinned, token);
+          await updateCardMeta(editId, title, body, category, pinned, extras, token);
           close();
           cardsToast('수정되었습니다.', 'success');
           renderStage();
         } else {
           const files = Array.from(fileInput.files);
           if (files.length === 0) { cardsToast('카드 이미지를 선택해주세요.', 'error'); return; }
+          const groupMode = modal.querySelector('#cards-post-group').checked && files.length > 1;
 
-          let ok = 0, fail = 0;
-          for (let i = 0; i < files.length; i++) {
-            submit.textContent = `올리는 중… (${i + 1}/${files.length})`;
-            try {
-              await uploadCardsPost(files[i], title, body, category, pinned, token);
-              ok++;
-            } catch (err) {
-              fail++;
-              console.error('Upload failed:', files[i].name, err);
+          if (groupMode) {
+            // 묶음
+            submit.textContent = `올리는 중… (1/${files.length})`;
+            const masterId = await uploadCardMaster(files[0], title, body, category, pinned, [], token);
+            const extras = [];
+            for (let i = 1; i < files.length; i++) {
+              submit.textContent = `올리는 중… (${i + 1}/${files.length})`;
+              try { const exId = await uploadCardExtra(files[i], masterId, token); extras.push(exId); }
+              catch (err) { console.error('Extra upload failed:', files[i].name, err); }
             }
+            await updateCardMeta(masterId, title, body, category, pinned, extras, token);
+            close();
+            cardsToast(`1개 카드뉴스(이미지 ${files.length}장) 등록됨`, 'success');
+          } else {
+            let ok = 0, fail = 0;
+            for (let i = 0; i < files.length; i++) {
+              submit.textContent = `올리는 중… (${i + 1}/${files.length})`;
+              try { await uploadCardMaster(files[i], title, body, category, pinned, [], token); ok++; }
+              catch (err) { fail++; console.error('Upload failed:', files[i].name, err); }
+            }
+            close();
+            if (fail === 0) cardsToast(`${ok}개 카드 등록됨`, 'success');
+            else if (ok > 0) cardsToast(`${ok}개 성공 · ${fail}개 실패`, 'error');
+            else cardsToast('업로드 실패 — 폴더 권한 확인', 'error');
           }
-          close();
-          if (fail === 0) cardsToast(`${ok}장 모두 등록됨`, 'success');
-          else if (ok > 0) cardsToast(`${ok}장 성공 · ${fail}장 실패`, 'error');
-          else cardsToast('업로드 실패 — 폴더 권한을 확인해주세요', 'error');
           renderStage();
         }
       } catch (err) {
@@ -727,14 +783,31 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
   // 수정/새 작성 분기
   const isEdit = !!init.editId;
   modal._editId = init.editId || null;
+  modal._editPost = init.editPost || null;
+  modal._removedExtras = [];
+  modal._reorderedImageIds = init.editPost ? (init.editPost.imageIds || []).slice() : null;
   modal.querySelector('#cards-modal-title').textContent = isEdit ? '카드 수정' : '새 카드뉴스 올리기';
   modal.querySelector('#cards-post-title').value = init.title || '';
   modal.querySelector('#cards-post-body').value = init.body || '';
   modal.querySelector('#cards-post-pinned').checked = !!init.pinned;
   modal.querySelector('#cards-post-category').value = init.category !== undefined ? init.category : defaultCategory;
-  modal.querySelector('#cards-post-file-field').style.display = isEdit ? 'none' : 'block';
+  modal.querySelector('#cards-post-file-field').style.display = 'block';
+  modal.querySelector('#cards-post-group-field').style.display = isEdit ? 'none' : 'flex';
+  modal.querySelector('#cards-edit-images').style.display = isEdit ? 'block' : 'none';
   modal.querySelector('#cards-post-submit').textContent = isEdit ? '저장' : '올리기';
-  modal.querySelector('#cards-post-file').value = '';
+  const fileEl = modal.querySelector('#cards-post-file');
+  fileEl.value = '';
+  fileEl.required = !isEdit;
+  const labelEl = modal.querySelector('#cards-post-file-label');
+  const phEl = modal.querySelector('#cards-post-modal .post-file-placeholder');
+  if (isEdit) {
+    labelEl.innerHTML = '추가 이미지 <small>(선택 · 카드뉴스에 더할 이미지)</small>';
+    phEl.innerHTML = '추가로 올릴 이미지를 선택하세요';
+    renderCardsEditImagesList();
+  } else {
+    labelEl.innerHTML = '카드 이미지 <small>(필수 · 여러 장 선택 가능)</small>';
+    phEl.innerHTML = '클릭하거나 카드 이미지를 드래그해서 선택하세요';
+  }
   updateCardsFileList(null);
 
   modal.classList.add('is-open');
@@ -765,32 +838,53 @@ function updateCardsFileList(files) {
   `).join('') + `<div class="post-file-summary">총 <strong>${files.length}장</strong> 선택됨${files.length > 1 ? ' · 각각 별도 카드로 등록' : ''}</div>`;
 }
 
-async function uploadCardsPost(file, title, body, category, pinned, token) {
+async function uploadCardMaster(file, title, body, category, pinned, extras, token) {
   const metadata = {
     name: file.name,
     parents: [CARDS_GDRIVE_FOLDER_ID],
-    description: JSON.stringify({ title: title || '', body: body || '', category: category || '', pinned: !!pinned })
+    description: JSON.stringify({ title: title || '', body: body || '', category: category || '', pinned: !!pinned, extras: extras || [] })
   };
   const form = new FormData();
   form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
   form.append('file', file);
   const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: form
+    method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error?.message || `HTTP ${res.status}`);
   }
   invalidateDriveCache();
+  const data = await res.json();
+  return data.id;
 }
 
-async function updateCardMeta(id, title, body, category, pinned, token) {
+async function uploadCardExtra(file, parentId, token) {
+  const metadata = {
+    name: file.name,
+    parents: [CARDS_GDRIVE_FOLDER_ID],
+    description: JSON.stringify({ parent: parentId })
+  };
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', file);
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+  invalidateDriveCache();
+  const data = await res.json();
+  return data.id;
+}
+
+async function updateCardMeta(id, title, body, category, pinned, extras, token) {
   const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}`, {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ description: JSON.stringify({ title: title || '', body: body || '', category: category || '', pinned: !!pinned }) })
+    body: JSON.stringify({ description: JSON.stringify({ title: title || '', body: body || '', category: category || '', pinned: !!pinned, extras: extras || [] }) })
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -800,16 +894,65 @@ async function updateCardMeta(id, title, body, category, pinned, token) {
 }
 
 function openEditCardModal(id) {
-  // 모든 카드(신규+정책+시리즈)에서 ID로 찾기
   const all = allDrivePosts || [];
   const post = all.find(p => p.id === id);
   if (!post) { cardsToast('카드를 찾을 수 없습니다', 'error'); return; }
   openCardsPostModal(post.category || '', {
     editId: post.id,
+    editPost: post,
     title: post.title,
     body: post.body,
     category: post.category || '',
     pinned: post.pinned
+  });
+}
+
+function renderCardsEditImagesList() {
+  const modal = document.getElementById('cards-post-modal');
+  const wrap = modal?.querySelector('#cards-edit-images');
+  if (!wrap || !modal._editPost) return;
+  const post = modal._editPost;
+  const removed = modal._removedExtras || [];
+  const order = modal._reorderedImageIds || (post.imageIds || [post.id]).slice();
+  const remaining = order.filter(id => !removed.includes(id));
+
+  wrap.innerHTML = `
+    <div class="edit-images-label">현재 카드 이미지 (${remaining.length}장)</div>
+    <div class="edit-images-grid">
+      ${remaining.map((id, i) => `
+        <div class="edit-image-item ${id === post.id ? 'is-master' : ''}" data-id="${id}">
+          <img src="${driveThumbUrl(id, 400)}" alt="이미지 ${i + 1}">
+          <div class="edit-image-num">${i + 1}${id === post.id ? ' · 대표' : ''}</div>
+          <div class="edit-image-actions">
+            ${i > 0 ? `<button type="button" class="edit-img-btn" data-action="moveUp" data-id="${id}" title="앞으로">◀</button>` : ''}
+            ${i < remaining.length - 1 ? `<button type="button" class="edit-img-btn" data-action="moveDown" data-id="${id}" title="뒤로">▶</button>` : ''}
+            ${id !== post.id ? `<button type="button" class="edit-img-btn edit-img-remove" data-action="remove" data-id="${id}" title="제거">✕</button>` : `<span style="font-size:10px; color:var(--gray-500); padding:0 8px;">대표</span>`}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="edit-images-hint">💡 대표 사진(첫 이미지)은 제거할 수 없습니다. 카드뉴스를 통째로 삭제하려면 카드의 ✕ 버튼을 누르세요.</div>
+  `;
+
+  wrap.querySelectorAll('.edit-img-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if (action === 'remove') {
+        modal._removedExtras = [...(modal._removedExtras || []), id];
+        modal._reorderedImageIds = (modal._reorderedImageIds || []).filter(x => x !== id);
+      } else if (action === 'moveUp' || action === 'moveDown') {
+        const arr = (modal._reorderedImageIds || (post.imageIds || [post.id])).slice();
+        const idx = arr.indexOf(id);
+        const target = action === 'moveUp' ? idx - 1 : idx + 1;
+        if (target < 0 || target >= arr.length) return;
+        if (arr[target] === post.id && action === 'moveUp') return;
+        [arr[idx], arr[target]] = [arr[target], arr[idx]];
+        modal._reorderedImageIds = arr;
+      }
+      renderCardsEditImagesList();
+    });
   });
 }
 
@@ -820,7 +963,7 @@ async function toggleCardPin(id) {
   const token = window.Admin?.getToken();
   if (!token) { cardsToast('로그인이 필요합니다.', 'error'); return; }
   try {
-    await updateCardMeta(post.id, post.title, post.body, post.category || '', !post.pinned, token);
+    await updateCardMeta(post.id, post.title, post.body, post.category || '', !post.pinned, post.extras || [], token);
     cardsToast(post.pinned ? '고정 해제됨' : '맨 위 고정됨', 'success');
     renderStage();
   } catch (e) {
@@ -828,14 +971,24 @@ async function toggleCardPin(id) {
   }
 }
 
-async function deleteRecentCard(id, label) {
-  if (!confirm(`"${label}" 카드를 정말 삭제할까요?\n사진과 글이 영구 삭제됩니다.`)) return;
+async function deleteRecentCard(id, label, extrasStr = '') {
+  const extras = extrasStr ? extrasStr.split(',').filter(Boolean) : [];
+  const total = 1 + extras.length;
+  const msg = total > 1
+    ? `"${label}" 카드(이미지 ${total}장)를 정말 삭제할까요?\n사진과 글이 영구 삭제됩니다.`
+    : `"${label}" 카드를 정말 삭제할까요?\n사진과 글이 영구 삭제됩니다.`;
+  if (!confirm(msg)) return;
   const token = window.Admin?.getToken();
   if (!token) { cardsToast('로그인이 필요합니다.', 'error'); return; }
   try {
+    // extras 먼저
+    for (const exId of extras) {
+      await fetch(`https://www.googleapis.com/drive/v3/files/${exId}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+      });
+    }
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok && res.status !== 204) {
       const err = await res.json().catch(() => ({}));
