@@ -232,7 +232,7 @@ function applySiteImages() {
   });
 }
 
-/* ===== 사이트 텍스트 (요소별 내용 + 크기) 적용 ===== */
+/* ===== 사이트 텍스트 (요소별 내용 + 크기 + 색 + 형광펜) 적용 ===== */
 function applySiteTexts() {
   const texts = siteSettings.texts || {};
   document.querySelectorAll('[data-edit]').forEach(el => {
@@ -241,6 +241,15 @@ function applySiteTexts() {
     if (!data) return;
     if (typeof data.html === 'string' && data.html.length > 0) el.innerHTML = data.html;
     if (data.fontSize) el.style.fontSize = data.fontSize + 'px';
+    if (data.color) el.style.color = data.color;
+    if (data.highlight) {
+      el.style.background = `linear-gradient(180deg, transparent 60%, ${data.highlight} 60%)`;
+      el.style.display = 'inline';
+      el.style.padding = '0 2px';
+    }
+    if (data.bold) el.style.fontWeight = '900';
+    if (data.italic) el.style.fontStyle = 'italic';
+    if (data.underline) el.style.textDecoration = 'underline';
   });
 }
 
@@ -394,11 +403,31 @@ function detachEditClickHandlers() {
   });
 }
 
+/* 미리 정의된 색상 팔레트 */
+const TEM_COLORS = [
+  '#111111', '#444444', '#888888',
+  '#E60012', '#B8000E', '#1E5FB0',
+  '#2BAE66', '#F39200', '#7A4FB7',
+  '#E83E8C', '#0D9488', '#FACC15'
+];
+const TEM_HIGHLIGHTS = [
+  'transparent',
+  '#FFF59D', '#FFEB3B', '#FFD54F',
+  '#FFCDD2', '#F8BBD0', '#E1BEE7',
+  '#C5E1A5', '#B2EBF2', '#BBDEFB'
+];
+
 function openTextEditModal(key, element) {
-  // 현재 값
-  const currentHtml = element.innerHTML.trim();
+  // 기존 사이트 설정에서 현재 데이터 가져오기 (없으면 기본 스타일에서)
+  const saved = (siteSettings.texts || {})[key] || {};
+  const currentHtml = saved.html || element.innerHTML.trim();
   const computedSize = parseFloat(getComputedStyle(element).fontSize);
-  const currentSize = Math.round(computedSize);
+  const currentSize = saved.fontSize || Math.round(computedSize);
+  const currentColor = saved.color || rgbToHex(getComputedStyle(element).color) || '#111111';
+  const currentHighlight = saved.highlight || 'transparent';
+  const currentBold = saved.bold || false;
+  const currentItalic = saved.italic || false;
+  const currentUnderline = saved.underline || false;
 
   let modal = document.getElementById('text-edit-modal');
   if (!modal) {
@@ -407,7 +436,7 @@ function openTextEditModal(key, element) {
     modal.className = 'post-modal';
     modal.innerHTML = `
       <div class="post-modal-backdrop"></div>
-      <div class="post-modal-body" style="max-width:540px;">
+      <div class="post-modal-body" style="max-width:580px;">
         <button class="post-modal-close" type="button" aria-label="닫기">✕</button>
         <h3>텍스트 편집</h3>
         <p style="font-size:13px; color:var(--gray-500); margin:0 0 16px; word-break:break-all;">
@@ -415,14 +444,52 @@ function openTextEditModal(key, element) {
         </p>
         <form id="text-edit-form">
           <label class="post-field">
-            <span class="post-label">내용 <small>(줄바꿈은 &lt;br&gt; 또는 새 줄)</small></span>
-            <textarea id="tem-content" rows="4"></textarea>
+            <span class="post-label">내용 <small>(줄바꿈은 새 줄)</small></span>
+            <textarea id="tem-content" rows="3"></textarea>
           </label>
+
           <label class="post-field">
             <span class="post-label">글자 크기 <span id="tem-size-label" style="color:var(--red); font-weight:900;">— px</span></span>
             <input type="range" id="tem-size" min="10" max="120" step="1" class="tem-size-slider">
-            <div class="tem-size-preview" id="tem-size-preview">미리보기 텍스트</div>
           </label>
+
+          <div class="post-field">
+            <span class="post-label">🎨 글자 색</span>
+            <div class="tem-color-row" id="tem-color-row">
+              ${TEM_COLORS.map(c => `<button type="button" class="tem-swatch" data-color="${c}" style="background:${c};" aria-label="${c}"></button>`).join('')}
+              <label class="tem-swatch tem-swatch-custom" title="원하는 색 직접 선택">
+                <input type="color" id="tem-color-custom" hidden>
+                <span>+</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="post-field">
+            <span class="post-label">🖍 형광펜</span>
+            <div class="tem-color-row" id="tem-highlight-row">
+              ${TEM_HIGHLIGHTS.map(c => `
+                <button type="button" class="tem-swatch ${c === 'transparent' ? 'tem-swatch-none' : ''}" data-highlight="${c}" style="background:${c === 'transparent' ? '#fff' : c};" aria-label="${c}">
+                  ${c === 'transparent' ? '<span style="font-size:10px; color:#888;">없음</span>' : ''}
+                </button>
+              `).join('')}
+              <label class="tem-swatch tem-swatch-custom" title="원하는 색 직접 선택">
+                <input type="color" id="tem-highlight-custom" hidden>
+                <span>+</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="post-field">
+            <span class="post-label">📝 스타일</span>
+            <div class="tem-style-row">
+              <label class="tem-style-toggle"><input type="checkbox" id="tem-bold"><span><strong>굵게</strong></span></label>
+              <label class="tem-style-toggle"><input type="checkbox" id="tem-italic"><span><em>기울임</em></span></label>
+              <label class="tem-style-toggle"><input type="checkbox" id="tem-underline"><span><u>밑줄</u></span></label>
+            </div>
+          </div>
+
+          <div class="tem-size-preview" id="tem-size-preview">미리보기 텍스트</div>
+
           <div class="post-modal-actions">
             <button type="button" class="btn btn-ghost" id="tem-reset" style="flex:0;">초기값</button>
             <button type="button" class="btn btn-ghost" id="tem-cancel">취소</button>
@@ -445,16 +512,63 @@ function openTextEditModal(key, element) {
     const sizeLabel = modal.querySelector('#tem-size-label');
     const preview = modal.querySelector('#tem-size-preview');
     const contentArea = modal.querySelector('#tem-content');
+    const boldChk = modal.querySelector('#tem-bold');
+    const italicChk = modal.querySelector('#tem-italic');
+    const underlineChk = modal.querySelector('#tem-underline');
 
-    sizeInput.addEventListener('input', () => {
+    function updatePreview() {
       const v = sizeInput.value;
       sizeLabel.textContent = `${v} px`;
       preview.style.fontSize = v + 'px';
+      preview.style.color = modal._currentColor || '#111';
+      const hl = modal._currentHighlight || 'transparent';
+      if (hl === 'transparent') {
+        preview.style.background = '';
+      } else {
+        preview.style.background = `linear-gradient(180deg, transparent 55%, ${hl} 55%)`;
+      }
+      preview.style.fontWeight = boldChk.checked ? '900' : '600';
+      preview.style.fontStyle = italicChk.checked ? 'italic' : 'normal';
+      preview.style.textDecoration = underlineChk.checked ? 'underline' : 'none';
+      preview.innerHTML = contentArea.value.replace(/\n/g, '<br>') || '미리보기 텍스트';
+    }
+
+    sizeInput.addEventListener('input', updatePreview);
+    contentArea.addEventListener('input', updatePreview);
+    boldChk.addEventListener('change', updatePreview);
+    italicChk.addEventListener('change', updatePreview);
+    underlineChk.addEventListener('change', updatePreview);
+
+    // 색상 / 형광펜 선택
+    modal.querySelectorAll('[data-color]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modal._currentColor = btn.dataset.color;
+        modal.querySelectorAll('#tem-color-row .tem-swatch').forEach(b => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        updatePreview();
+      });
+    });
+    modal.querySelectorAll('[data-highlight]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modal._currentHighlight = btn.dataset.highlight;
+        modal.querySelectorAll('#tem-highlight-row .tem-swatch').forEach(b => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        updatePreview();
+      });
     });
 
-    contentArea.addEventListener('input', () => {
-      preview.innerHTML = contentArea.value.replace(/\n/g, '<br>') || '미리보기 텍스트';
+    modal.querySelector('#tem-color-custom').addEventListener('change', e => {
+      modal._currentColor = e.target.value;
+      modal.querySelectorAll('#tem-color-row .tem-swatch').forEach(b => b.classList.remove('is-active'));
+      updatePreview();
     });
+    modal.querySelector('#tem-highlight-custom').addEventListener('change', e => {
+      modal._currentHighlight = e.target.value;
+      modal.querySelectorAll('#tem-highlight-row .tem-swatch').forEach(b => b.classList.remove('is-active'));
+      updatePreview();
+    });
+
+    modal._updatePreview = updatePreview;
 
     modal.querySelector('#tem-reset').addEventListener('click', async () => {
       if (!confirm('이 텍스트를 원래 사이트 기본값으로 되돌릴까요?')) return;
@@ -466,9 +580,7 @@ function openTextEditModal(key, element) {
         close();
         showFontScaleNote('✓ 초기값으로 복원됨');
         setTimeout(() => location.reload(), 600);
-      } catch (err) {
-        alert('복원 실패: ' + err.message);
-      }
+      } catch (err) { alert('복원 실패: ' + err.message); }
     });
 
     modal.querySelector('#text-edit-form').addEventListener('submit', async e => {
@@ -476,14 +588,22 @@ function openTextEditModal(key, element) {
       const key = modal._activeKey;
       const newHtml = modal.querySelector('#tem-content').value.replace(/\n/g, '<br>');
       const newSize = parseInt(modal.querySelector('#tem-size').value, 10);
-
       const submit = modal.querySelector('#tem-save');
       submit.disabled = true; submit.textContent = '저장 중…';
       try {
-        // 머지
         const current = await fetchSiteSettings();
         const texts = { ...(current.texts || {}) };
-        texts[key] = { html: newHtml, fontSize: newSize };
+        texts[key] = {
+          html: newHtml,
+          fontSize: newSize,
+          color: modal._currentColor || undefined,
+          highlight: modal._currentHighlight && modal._currentHighlight !== 'transparent' ? modal._currentHighlight : undefined,
+          bold: boldChk.checked || undefined,
+          italic: italicChk.checked || undefined,
+          underline: underlineChk.checked || undefined
+        };
+        // undefined 필드 제거
+        Object.keys(texts[key]).forEach(k => texts[key][k] === undefined && delete texts[key][k]);
         await pushSiteSettings({ texts });
         close();
         showFontScaleNote('✓ 저장됨 (모든 방문자에게 적용)');
@@ -497,19 +617,36 @@ function openTextEditModal(key, element) {
 
   // 모달에 현재 값 채우기
   modal._activeKey = key;
+  modal._currentColor = currentColor;
+  modal._currentHighlight = currentHighlight;
   modal.querySelector('#tem-key').textContent = `편집 위치: ${key}`;
   const contentValue = currentHtml.replace(/<br\s*\/?>/gi, '\n');
   modal.querySelector('#tem-content').value = contentValue;
-  const sizeInput = modal.querySelector('#tem-size');
-  sizeInput.value = currentSize;
-  modal.querySelector('#tem-size-label').textContent = `${currentSize} px`;
-  const preview = modal.querySelector('#tem-size-preview');
-  preview.style.fontSize = currentSize + 'px';
-  preview.innerHTML = contentValue.replace(/\n/g, '<br>') || '미리보기 텍스트';
+  modal.querySelector('#tem-size').value = currentSize;
+  modal.querySelector('#tem-bold').checked = currentBold;
+  modal.querySelector('#tem-italic').checked = currentItalic;
+  modal.querySelector('#tem-underline').checked = currentUnderline;
 
+  // 활성 색/형광 표시
+  modal.querySelectorAll('#tem-color-row .tem-swatch').forEach(b => {
+    b.classList.toggle('is-active', b.dataset.color === currentColor);
+  });
+  modal.querySelectorAll('#tem-highlight-row .tem-swatch').forEach(b => {
+    b.classList.toggle('is-active', b.dataset.highlight === currentHighlight);
+  });
+
+  modal._updatePreview();
   modal.classList.add('is-open');
   document.body.style.overflow = 'hidden';
   setTimeout(() => modal.querySelector('#tem-content').focus(), 50);
+}
+
+function rgbToHex(rgb) {
+  if (!rgb || !rgb.startsWith('rgb')) return null;
+  const m = rgb.match(/\d+/g);
+  if (!m) return null;
+  const [r, g, b] = m.map(Number);
+  return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
 }
 
 /* ===== 이미지 편집 모달 (크기 + 정렬) ===== */

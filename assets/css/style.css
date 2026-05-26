@@ -2849,18 +2849,103 @@ body.admin-edit-mode [data-edit-img]:hover {
 
 .tem-size-preview {
   margin-top: 12px;
-  padding: 16px;
+  padding: 20px 16px;
   background: var(--gray-50);
   border-radius: 10px;
   text-align: center;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.3;
   word-break: keep-all;
   color: var(--black);
   border: 1px dashed var(--gray-300);
-  max-height: 200px;
+  max-height: 240px;
   overflow: auto;
 }
+
+/* 색상 / 형광펜 스워치 */
+.tem-color-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+
+@media (max-width: 600px) {
+  .tem-color-row { grid-template-columns: repeat(6, 1fr); }
+}
+
+.tem-swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid var(--gray-300);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform .12s, border-color .15s;
+  background-clip: padding-box;
+}
+
+.tem-swatch:hover { transform: scale(1.15); }
+
+.tem-swatch.is-active {
+  border-color: var(--black);
+  border-width: 3px;
+  box-shadow: 0 0 0 2px #fff inset;
+}
+
+.tem-swatch-none {
+  background: #fff !important;
+  border-style: dashed;
+}
+
+.tem-swatch-custom {
+  background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcf7f, #4d96ff, #c476f7) !important;
+  border-color: var(--gray-700);
+  color: #fff;
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.tem-swatch-custom span {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+/* 스타일 토글 (굵게/기울임/밑줄) */
+.tem-style-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tem-style-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: var(--gray-50);
+  border: 1.5px solid var(--gray-300);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: all .15s;
+}
+
+.tem-style-toggle input { display: none; }
+
+.tem-style-toggle:has(input:checked) {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+.tem-style-toggle:has(input:checked) span strong,
+.tem-style-toggle:has(input:checked) span em,
+.tem-style-toggle:has(input:checked) span u { color: #fff; }
 
 .afc-label {
   font-size: 13px;
