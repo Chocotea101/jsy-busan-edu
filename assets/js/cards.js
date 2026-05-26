@@ -655,10 +655,14 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
           <label class="post-field" id="cards-post-file-field">
             <span class="post-label" id="cards-post-file-label">카드 이미지 <small>(필수 · 여러 장 선택 가능)</small></span>
             <div class="post-file-drop" id="cards-post-file-drop">
-              <input type="file" id="cards-post-file" accept="image/*" multiple required>
-              <div class="post-file-placeholder">클릭하거나 카드 이미지를 드래그해서 선택하세요</div>
+              <input type="file" id="cards-post-file" accept="image/*" multiple>
+              <div class="post-file-placeholder">클릭하거나 카드 이미지를 드래그해서 선택하세요<br><small>여러 번 추가 가능 · 파일명에 1,2,3 있으면 자동 정렬</small></div>
               <div id="cards-post-file-list" class="post-file-list" style="display:none;"></div>
             </div>
+            <label class="post-auto-sort-row">
+              <input type="checkbox" id="cards-post-auto-sort" checked>
+              <span>📋 파일명 숫자로 자동 정렬 (1, 2, 3 순서대로)</span>
+            </label>
           </label>
           <label class="post-field" id="cards-post-group-field" style="display:flex; align-items:center; gap:10px;">
             <input type="checkbox" id="cards-post-group" style="width:18px; height:18px; cursor:pointer;" checked>
@@ -682,6 +686,7 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
       modal.classList.remove('is-open');
       document.body.style.overflow = '';
       modal._editId = null;
+      modal._selectedFiles = [];
       modal.querySelector('#cards-post-form').reset();
       updateCardsFileList(null);
     };
@@ -692,13 +697,12 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
     const fileInput = modal.querySelector('#cards-post-file');
     const drop = modal.querySelector('#cards-post-file-drop');
 
-    fileInput.addEventListener('change', () => updateCardsFileList(fileInput.files));
+    fileInput.addEventListener('change', () => addCardsFiles(fileInput.files));
     ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('is-dragover'); }));
     ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('is-dragover'); }));
     drop.addEventListener('drop', e => {
-      const dt = new DataTransfer();
-      Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')).forEach(f => dt.items.add(f));
-      if (dt.files.length > 0) { fileInput.files = dt.files; updateCardsFileList(fileInput.files); }
+      const dropped = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      if (dropped.length > 0) addCardsFiles(dropped);
     });
 
     modal.querySelector('#cards-post-form').addEventListener('submit', async e => {
@@ -719,7 +723,7 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
           // 수정 모드 — 이미지 추가/제거/순서 + 메타
           const post = modal._editPost;
           const removed = modal._removedExtras || [];
-          const newFiles = Array.from(fileInput.files);
+          const newFiles = (modal._selectedFiles || []).slice();
           let currentImageIds = (modal._reorderedImageIds || post.imageIds || [post.id]).slice();
 
           for (let i = 0; i < removed.length; i++) {
@@ -747,7 +751,7 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
           cardsToast('수정되었습니다.', 'success');
           renderStage();
         } else {
-          const files = Array.from(fileInput.files);
+          const files = (modal._selectedFiles || []).slice();
           if (files.length === 0) { cardsToast('카드 이미지를 선택해주세요.', 'error'); return; }
           const groupMode = modal.querySelector('#cards-post-group').checked && files.length > 1;
 
@@ -801,6 +805,8 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
   modal.querySelector('#cards-post-group-field').style.display = isEdit ? 'none' : 'flex';
   modal.querySelector('#cards-edit-images').style.display = isEdit ? 'block' : 'none';
   modal.querySelector('#cards-post-submit').textContent = isEdit ? '저장' : '올리기';
+  // 새로 열 때마다 파일 배열 초기화
+  modal._selectedFiles = [];
   const fileEl = modal.querySelector('#cards-post-file');
   fileEl.value = '';
   fileEl.required = !isEdit;
@@ -821,6 +827,33 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
   setTimeout(() => modal.querySelector('#cards-post-title').focus(), 50);
 }
 
+function extractNumberCards(filename) {
+  const m = filename.match(/\d+/);
+  return m ? parseInt(m[0], 10) : Infinity;
+}
+
+function sortByFilenameCards(files) {
+  return files.slice().sort((a, b) => {
+    const na = extractNumberCards(a.name);
+    const nb = extractNumberCards(b.name);
+    if (na !== nb) return na - nb;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function addCardsFiles(filesOrList) {
+  const modal = document.getElementById('cards-post-modal');
+  if (!modal) return;
+  if (!modal._selectedFiles) modal._selectedFiles = [];
+  const newFiles = Array.from(filesOrList).filter(f => f.type.startsWith('image/'));
+  const autoSort = modal.querySelector('#cards-post-auto-sort')?.checked !== false;
+  let toAdd = newFiles;
+  if (autoSort) toAdd = sortByFilenameCards(newFiles);
+  modal._selectedFiles = [...modal._selectedFiles, ...toAdd];
+  if (autoSort) modal._selectedFiles = sortByFilenameCards(modal._selectedFiles);
+  updateCardsFileList(modal._selectedFiles);
+}
+
 function updateCardsFileList(files) {
   const list = document.getElementById('cards-post-file-list');
   const placeholder = document.querySelector('#cards-post-modal .post-file-placeholder');
@@ -833,15 +866,34 @@ function updateCardsFileList(files) {
   }
   list.style.display = 'block';
   placeholder.style.display = 'none';
-  list.innerHTML = Array.from(files).map(f => `
-    <div class="post-file-item">
+  list.innerHTML = files.map((f, i) => `
+    <div class="post-file-item" data-idx="${i}">
       <img src="${URL.createObjectURL(f)}" alt="${escapeAttr(f.name)}">
       <div class="post-file-info">
-        <div class="post-file-name">${escapeHtml(f.name)}</div>
+        <div class="post-file-name">${i + 1}. ${escapeHtml(f.name)}</div>
         <div class="post-file-size">${(f.size / 1024).toFixed(0)} KB</div>
       </div>
+      <div class="post-file-actions">
+        ${i > 0 ? `<button type="button" class="pfile-btn" data-action="up" data-idx="${i}" title="앞으로">▲</button>` : ''}
+        ${i < files.length - 1 ? `<button type="button" class="pfile-btn" data-action="down" data-idx="${i}" title="뒤로">▼</button>` : ''}
+        <button type="button" class="pfile-btn pfile-remove" data-action="remove" data-idx="${i}" title="제거">✕</button>
+      </div>
     </div>
-  `).join('') + `<div class="post-file-summary">총 <strong>${files.length}장</strong> 선택됨${files.length > 1 ? ' · 각각 별도 카드로 등록' : ''}</div>`;
+  `).join('') + `<div class="post-file-summary">총 <strong>${files.length}장</strong> 선택됨${files.length > 1 ? ' · 위 순서대로 등록' : ''}</div>`;
+
+  list.querySelectorAll('.pfile-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      const modal = document.getElementById('cards-post-modal');
+      const arr = modal._selectedFiles || [];
+      const idx = Number(btn.dataset.idx);
+      const action = btn.dataset.action;
+      if (action === 'remove') arr.splice(idx, 1);
+      else if (action === 'up' && idx > 0) [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+      else if (action === 'down' && idx < arr.length - 1) [arr[idx + 1], arr[idx]] = [arr[idx], arr[idx + 1]];
+      updateCardsFileList(arr);
+    });
+  });
 }
 
 async function uploadCardMaster(file, title, body, category, pinned, extras, token) {
