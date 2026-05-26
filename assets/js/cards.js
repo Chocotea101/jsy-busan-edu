@@ -163,6 +163,7 @@ async function renderStage() {
   }
 
   const isHorizontal = state.view === 'horizontal';
+  const isGrid = state.view === 'grid';
 
   stageEl.innerHTML = `
     <div class="cards-stage-head">
@@ -170,11 +171,14 @@ async function renderStage() {
       <h3>${cfg.groupTitle(state.group)}</h3>
       <div class="cs-counter" id="cs-counter">불러오는 중…</div>
       <div class="view-toggle" role="group" aria-label="보기 방식">
-        <button class="view-toggle-btn ${!isHorizontal ? 'is-active' : ''}" data-view="vertical" aria-label="세로 보기">
+        <button class="view-toggle-btn ${state.view === 'vertical' ? 'is-active' : ''}" data-view="vertical" aria-label="세로 보기">
           <span class="vt-icon">☰</span><span class="vt-label">세로</span>
         </button>
         <button class="view-toggle-btn ${isHorizontal ? 'is-active' : ''}" data-view="horizontal" aria-label="가로 보기">
           <span class="vt-icon">⇆</span><span class="vt-label">가로</span>
+        </button>
+        <button class="view-toggle-btn ${isGrid ? 'is-active' : ''}" data-view="grid" aria-label="그리드 보기">
+          <span class="vt-icon">▦</span><span class="vt-label">그리드</span>
         </button>
       </div>
     </div>
@@ -248,6 +252,8 @@ async function renderStage() {
   const adminInfo = driveCards.length > 0 ? ` · 관리자 추가 ${driveCards.length}장 포함` : '';
   counter.textContent = isHorizontal
     ? `${cards.length}장${adminInfo} · 좌우로 넘기거나 카드를 눌러 크게 보세요`
+    : isGrid
+    ? `${cards.length}장${adminInfo} · 카드를 눌러 크게 보세요`
     : `${cards.length}장${adminInfo} · 카드를 눌러 크게 보거나 스크롤하며 보세요`;
 
   container.innerHTML = cards.map((c, i) => {
@@ -482,7 +488,7 @@ async function renderDriveStage(cfg) {
       <h3>${cfg.title}</h3>
       <div class="cs-counter" id="cs-counter">불러오는 중…</div>
     </div>
-    <div class="cards-vertical" id="cards-vertical"></div>
+    <div class="cards-grid recent-grid" id="cards-vertical"></div>
   `;
 
   try {
