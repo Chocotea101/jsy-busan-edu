@@ -3012,6 +3012,73 @@ body.admin-edit-mode [data-edit-img]:hover {
   z-index: 2;
 }
 
+/* 관리자 액션 버튼 그룹 (수정/삭제/핀) */
+.post-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 3;
+}
+
+.activity-item:hover .post-actions,
+.activity-item:focus-within .post-actions,
+.vcard:hover .post-actions,
+.vcard:focus-within .post-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .post-actions { opacity: 1; }
+}
+
+.post-action-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, transform .12s;
+  backdrop-filter: blur(4px);
+}
+
+.post-action-btn:hover { background: var(--red); transform: scale(1.08); }
+.post-action-btn.pin-btn:hover { background: #d99a00; }
+.post-action-btn.edit-btn:hover { background: var(--c-2); }
+
+/* 핀 배지 (좌상단) */
+.pin-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: linear-gradient(135deg, #ffd45a 0%, #f5a623 100%);
+  color: #5a3a00;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.activity-item.is-pinned,
+.vcard.is-pinned {
+  outline: 2px solid #f5a623;
+  outline-offset: -2px;
+}
+
 /* 카드 제목 오버레이 */
 .activity-title {
   position: absolute;
@@ -3238,6 +3305,67 @@ body.admin-edit-mode [data-edit-img]:hover {
   max-height: 280px;
   border-radius: 8px;
   pointer-events: none;
+}
+
+/* 다중 파일 선택 목록 */
+.post-file-list {
+  max-height: 280px;
+  overflow-y: auto;
+  width: 100%;
+  padding: 8px;
+  background: #fff;
+  border-radius: 10px;
+}
+
+.post-file-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.post-file-item:last-child { border-bottom: none; }
+
+.post-file-item img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--gray-100);
+  flex: 0 0 auto;
+}
+
+.post-file-info {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.post-file-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--black);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.post-file-size {
+  font-size: 11px;
+  color: var(--gray-500);
+  font-weight: 600;
+}
+
+.post-file-summary {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--red-soft);
+  color: var(--red-dark);
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  text-align: center;
 }
 
 .post-modal-actions {
