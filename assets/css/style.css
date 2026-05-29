@@ -3722,6 +3722,36 @@ body.admin-edit-mode [data-edit-img]:hover {
 
 .songs-page { background: var(--gray-50); min-height: 100vh; }
 
+/* 영상 카테고리 토글 (유세송/토론회) */
+#videos-mode {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  background: #fff;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--gray-300);
+  max-width: 320px;
+  margin: 0 auto 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.cards-mode-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 12px 18px;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--gray-700);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.cards-mode-btn:hover { color: var(--black); }
+.cards-mode-btn.is-active { background: var(--red); color: #fff; box-shadow: var(--shadow-sm); }
+
 .songs-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
