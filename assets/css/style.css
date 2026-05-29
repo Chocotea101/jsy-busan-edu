@@ -3717,6 +3717,75 @@ body.admin-edit-mode [data-edit-img]:hover {
 .toast-error   { background: var(--red); }
 
 /* ============================================================
+   유세송 페이지
+   ============================================================ */
+
+.songs-page { background: var(--gray-50); min-height: 100vh; }
+
+.songs-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 22px;
+}
+
+@media (max-width: 760px) {
+  .songs-list { grid-template-columns: 1fr; gap: 18px; }
+}
+
+.song-card {
+  background: #fff;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: transform .2s, box-shadow .2s;
+}
+
+.song-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 16:9 영상 영역 */
+.song-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+.song-media iframe,
+.song-media video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  object-fit: contain;
+  background: #000;
+}
+
+.song-info {
+  padding: 18px 20px 20px;
+}
+
+.song-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+  color: var(--black);
+}
+
+.song-desc {
+  font-size: 16px;
+  color: var(--gray-700);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ============================================================
    Utility
    ============================================================ */
 

@@ -3,15 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>활동사진 · 정승윤 부산교육감 후보</title>
-<meta name="description" content="정승윤 부산시교육감 후보의 현장 활동 사진. Google Drive로 실시간 업데이트.">
+<title>유세송 · 정승윤 부산교육감 후보</title>
+<meta name="description" content="정승윤 부산시교육감 후보의 유세송. 영상으로 함께 즐겨요.">
 <meta name="theme-color" content="#E60012">
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body class="activities-page">
+<body class="songs-page">
 
 <header class="site-header">
   <div class="container">
@@ -32,14 +31,17 @@
 <section style="padding-top:28px; padding-bottom:64px;">
   <div class="container">
     <div class="section-head">
-      <span class="section-eyebrow">Activities</span>
-      <h1 class="section-title">현장에서, 시민과 함께</h1>
-      <p class="section-lead">정승윤 후보의 현장 활동 사진을 모았습니다. 사진을 누르면 크게 볼 수 있습니다.</p>
+      <span class="section-eyebrow">Songs</span>
+      <h1 class="section-title">정승윤 유세송</h1>
+      <p class="section-lead">영상을 눌러 유세송을 함께 즐겨주세요.</p>
     </div>
 
-    <div id="activities-toolbar"></div>
-    <div id="activities-status"></div>
-    <div class="activities-grid" id="activities-grid"></div>
+    <div id="songs-empty" class="cards-empty" style="display:none;">
+      <strong>🎵 유세송이 곧 공개됩니다</strong>
+      <p>유세송 영상이 준비되면 이곳에서 바로 들으실 수 있습니다.</p>
+    </div>
+
+    <div id="songs-list" class="songs-list"></div>
 
     <div style="text-align:center; margin-top:40px;">
       <a href="index.html" class="btn btn-ghost">← 메인으로</a>
@@ -55,31 +57,16 @@
       <a href="cards.html">카드뉴스</a>
       <a href="activities.html">활동사진</a>
       <a href="songs.html">유세송</a>
-      <a href="index.html#about">후보소개</a>
       <a href="book.html">책자형 공보</a>
     </div>
   </div>
 </footer>
 
-<!-- 라이트박스 -->
-<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="활동사진 크게 보기">
-  <button class="lightbox-close" id="lightbox-close" aria-label="닫기">✕</button>
-  <button class="lightbox-arrow lightbox-prev" id="lightbox-prev" aria-label="이전 사진">←</button>
-  <button class="lightbox-arrow lightbox-next" id="lightbox-next" aria-label="다음 사진">→</button>
-  <div class="lightbox-stage">
-    <img id="lightbox-img" alt="">
-  </div>
-  <div class="lightbox-bottom">
-    <div class="lightbox-counter" id="lightbox-counter"></div>
-    <div class="lightbox-caption" id="lightbox-caption"></div>
-  </div>
-</div>
-
 <button class="back-to-top" id="back-to-top" aria-label="맨 위로 이동" title="맨 위로">↑</button>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="assets/js/admin.js"></script>
-<script src="assets/js/activities.js"></script>
+<script src="assets/js/songs.js"></script>
 <script src="assets/js/common.js"></script>
 </body>
 </html>
