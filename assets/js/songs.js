@@ -11,6 +11,12 @@ const SONGS = [
     title: '01. 안전한 등하교길',
     desc: '정승윤 부산교육감 후보 로고송'
   },
+  {
+    type: 'youtube',
+    id: '392rmOr-w9c',
+    title: '02. 믿고 맡겨줘요',
+    desc: '정승윤 부산교육감 후보 로고송'
+  },
 
   /* ===== 추가 형식 참고 =====
   // 유튜브:  { type: 'youtube', id: '유튜브주소 또는 ID', title: '...', desc: '...' }
