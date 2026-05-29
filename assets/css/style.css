@@ -3726,6 +3726,14 @@ body.admin-edit-mode [data-edit-img]:hover {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 22px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* 곡이 1개뿐이면 가운데 1열로 큼직하게 */
+.songs-list.single {
+  grid-template-columns: 1fr;
+  max-width: 720px;
 }
 
 @media (max-width: 760px) {

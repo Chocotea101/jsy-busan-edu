@@ -41,6 +41,7 @@ function render() {
   }
   emptyEl.style.display = 'none';
   listEl.style.display = 'grid';
+  listEl.classList.toggle('single', SONGS.length === 1);
 
   listEl.innerHTML = SONGS.map((s, i) => {
     let thumb = '';
