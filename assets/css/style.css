@@ -3910,6 +3910,16 @@ body.admin-edit-mode [data-edit-img]:hover {
   align-items: center;
 }
 
+/* 데스크탑: 제목/설명 숨기고 영상 더 크게 (영상 안에 제목 이미 있음) */
+@media (min-width: 601px) {
+  .song-lb-caption { display: none; }
+  .song-lb-inner {
+    width: min(92vw, calc((90vh - 40px) * 16 / 9));
+    width: min(92vw, calc((90dvh - 40px) * 16 / 9));
+    max-width: 1280px;
+  }
+}
+
 .song-lb-media {
   position: relative;
   width: 100%;
