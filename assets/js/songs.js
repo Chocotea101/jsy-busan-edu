@@ -4,26 +4,17 @@
    ============================================================ */
 
 const SONGS = [
-  /* ===== 예시 형식 (실제 링크 받으면 채움) =====
-
-  // 유튜브 영상/음원
   {
     type: 'youtube',
-    id: 'VIDEO_ID',          // 유튜브 주소 watch?v= 뒤의 ID 또는 youtu.be/ 뒤
-    title: '정승윤 유세송 1',
-    desc: '부산 교육 대전환! 함께 불러요'
+    id: 'sxqW-NjHLak',
+    title: '01. 안전한 등하교길',
+    desc: '정승윤 부산교육감 후보 로고송'
   },
 
-  // mp4 영상 파일 (assets/songs/ 폴더에 넣기)
-  {
-    type: 'mp4',
-    src: 'assets/songs/song1.mp4',
-    poster: 'assets/songs/song1-thumb.jpg', // 썸네일(선택)
-    title: '정승윤 유세송 2',
-    desc: '거리에서 울려퍼지는 응원가'
-  },
-
-  ===== 예시 끝 ===== */
+  /* ===== 추가 형식 참고 =====
+  // 유튜브:  { type: 'youtube', id: '유튜브주소 또는 ID', title: '...', desc: '...' }
+  // mp4영상: { type: 'mp4', src: 'assets/songs/파일.mp4', title: '...', desc: '...' }
+  ===== */
 ];
 
 /* ============================================================ */
