@@ -131,6 +131,7 @@ const Admin = (function () {
               <div class="afc-hint">모든 방문자에게 적용됩니다</div>
             </div>
 
+            <a class="admin-menu-link admin-menu-primary" href="admin.html">⚙️ 관리자 페이지</a>
             <a class="admin-menu-link" href="activities.html">활동사진 관리</a>
             <a class="admin-menu-link" href="cards.html#recent">카드뉴스 관리</a>
             <button class="admin-menu-link" id="admin-edit-toggle">✏️ 텍스트 편집 모드</button>
@@ -212,9 +213,19 @@ function applyAllSettings() {
   applyFontScale(siteSettings.fontScale || 1);
   applySiteTexts();
   applySiteImages();
+  applyFeaturedVideo();
   // 메뉴 텍스트 갱신
   const lvl = document.getElementById('afc-level');
   if (lvl) lvl.textContent = `${Math.round((siteSettings.fontScale || 1) * 100)}%`;
+}
+
+/* 홈 대표 영상 — siteSettings.featuredVideo (유튜브 ID)가 있으면 교체 */
+function applyFeaturedVideo() {
+  const wrap = document.getElementById('featured-video-frame');
+  if (!wrap) return;
+  const id = siteSettings.featuredVideo;
+  if (!id) return; // 없으면 HTML 기본값 유지
+  wrap.src = `https://www.youtube.com/embed/${id}?rel=0`;
 }
 
 /* ===== 사이트 이미지 (크기·정렬) 적용 ===== */

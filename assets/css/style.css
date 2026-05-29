@@ -3087,6 +3087,126 @@ body.admin-edit-mode [data-edit-img]:hover {
 
 .admin-menu-link:hover { background: var(--red-soft); color: var(--red-dark); }
 
+.admin-menu-primary {
+  background: var(--red);
+  color: #fff !important;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.admin-menu-primary:hover { background: var(--red-dark); color: #fff !important; }
+
+/* ============================================================
+   관리자 전용 페이지 (admin.html)
+   ============================================================ */
+.admin-card {
+  background: #fff;
+  border: 1px solid var(--gray-300);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+@media (max-width: 600px) { .admin-card { padding: 18px; } }
+
+.admin-card-title {
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+}
+.admin-card-sub {
+  font-size: 14px;
+  color: var(--gray-500);
+  margin: 0 0 16px;
+}
+
+/* 바로가기 */
+.admin-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media (max-width: 600px) { .admin-shortcuts { grid-template-columns: 1fr; } }
+
+.admin-shortcut {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 18px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-300);
+  border-radius: 12px;
+  transition: transform .15s, border-color .15s, background .15s;
+}
+.admin-shortcut:hover { transform: translateY(-2px); border-color: var(--red); background: var(--red-soft); }
+.admin-shortcut .as-icon { font-size: 28px; }
+.admin-shortcut .as-label { font-size: 17px; font-weight: 800; color: var(--black); }
+.admin-shortcut .as-desc { font-size: 13px; color: var(--gray-500); }
+
+/* 대표 영상 */
+.featured-current-label { font-size: 13px; font-weight: 800; color: var(--gray-700); margin-bottom: 8px; }
+.featured-current-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--red-soft);
+  border-radius: 12px;
+  padding: 12px;
+}
+.featured-current-card img { width: 120px; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; }
+.featured-current-card .fc-title { font-weight: 800; font-size: 16px; color: var(--red-dark); }
+
+.featured-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+@media (max-width: 600px) { .featured-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.featured-pick {
+  position: relative;
+  background: #fff;
+  border: 2px solid var(--gray-300);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: border-color .15s, transform .12s;
+  display: flex;
+  flex-direction: column;
+}
+.featured-pick:hover { border-color: var(--red); transform: translateY(-2px); }
+.featured-pick.is-current { border-color: var(--red); box-shadow: 0 0 0 2px var(--red-soft) inset; }
+.featured-pick img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #000; }
+.featured-pick .fp-cat {
+  position: absolute; top: 6px; left: 6px;
+  background: rgba(0,0,0,0.65); color: #fff;
+  font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px;
+}
+.featured-pick .fp-title {
+  font-size: 13px; font-weight: 700; color: var(--black);
+  padding: 8px 10px; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* 글자 크기 행 */
+.admin-font-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ap-font-level {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--red);
+  min-width: 70px;
+  text-align: center;
+}
+
 @media (max-width: 480px) {
   .admin-name { display: none; }
   .admin-caret { display: none; }

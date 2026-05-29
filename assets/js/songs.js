@@ -29,7 +29,7 @@ const CAT_META = {
   debate: { label: '토론회', vertical: false },
   shorts: { label: '쇼츠',   vertical: true }
 };
-const VIDEO_CATS = ['songs', 'debate', 'shorts'];
+const VIDEO_CATS = ['debate', 'songs', 'shorts'];
 
 /* ============================================================ */
 
@@ -38,7 +38,7 @@ const toolbarEl = document.getElementById('videos-toolbar');
 const listEl = document.getElementById('songs-list');
 const emptyEl = document.getElementById('songs-empty');
 
-let curCat = (location.hash.replace('#', '') in CAT_META) ? location.hash.replace('#', '') : 'songs';
+let curCat = (location.hash.replace('#', '') in CAT_META) ? location.hash.replace('#', '') : 'debate';
 
 function ytId(input) {
   if (!input) return '';
