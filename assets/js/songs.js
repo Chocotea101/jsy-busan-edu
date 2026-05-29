@@ -196,9 +196,9 @@ function openVideoModal(cat, edit = null) {
           </label>
           <label class="post-field">
             <span class="post-label">제목 <small>( | 앞=제목, 뒤=부제목 )</small></span>
-            <input type="text" id="video-title" maxlength="300" placeholder='예) **211억** 교육청 예산 | 부산KNN TV토론회'>
+            <textarea id="video-title" maxlength="300" rows="2" placeholder='예) **211억** 교육청 예산 | 부산KNN TV토론회'></textarea>
             <div class="video-fmt-guide">
-              ✏️ 서식: <code>**굵게**</code> · <code>//빨강//</code> · 줄바꿈은 <code>\n</code>
+              ✏️ 서식: <code>**굵게**</code> · <code>//빨강//</code> · 줄바꿈은 <b>엔터(Enter)</b>
             </div>
             <div id="video-title-preview" class="video-title-preview"></div>
           </label>

@@ -3942,6 +3942,14 @@ body.admin-edit-mode [data-edit-img]:hover {
 }
 .video-title-preview b { font-weight: 900; }
 
+/* 영상 제목 textarea — 작게, 엔터 줄바꿈 */
+#video-title {
+  min-height: 0 !important;
+  height: auto;
+  line-height: 1.5;
+  resize: vertical;
+}
+
 /* 영상 수정/삭제 버튼 (관리자) */
 .song-card { position: relative; }
 .video-actions {
