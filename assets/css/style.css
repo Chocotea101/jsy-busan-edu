@@ -3720,6 +3720,27 @@ body.admin-edit-mode [data-edit-img]:hover {
    유세송 페이지
    ============================================================ */
 
+/* 메인 대표 영상 */
+.featured-video-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  background: #000;
+}
+
+.featured-video-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 .songs-page { background: var(--gray-50); min-height: 100vh; }
 
 /* 영상 카테고리 토글 (유세송/토론회) */
