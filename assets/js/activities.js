@@ -319,18 +319,18 @@ function openPostModal(init = {}) {
             <textarea id="post-body" rows="6" maxlength="2000" placeholder="현장에서 있었던 일, 느낀 점 등을 적어주세요"></textarea>
           </label>
           <label class="post-field" id="post-file-field">
-            <span class="post-label">사진 <small id="post-file-hint">(필수 · 여러 장 선택 가능)</small></span>
+            <span class="post-label">사진 <small id="post-file-hint">(1장만 올려도 되고, 여러 장도 가능)</small></span>
             <div class="post-file-drop" id="post-file-drop">
               <input type="file" id="post-file" accept="image/*" multiple>
-              <div class="post-file-placeholder">클릭하거나 사진을 드래그해서 선택하세요<br><small>여러 번 추가 가능 · 파일명에 1,2,3 있으면 자동 정렬</small></div>
+              <div class="post-file-placeholder">클릭하거나 사진을 드래그해서 선택하세요<br><small>사진 1장이면 그대로, 여러 장이면 묶거나 각각 올릴 수 있어요</small></div>
               <div id="post-file-list" class="post-file-list" style="display:none;"></div>
             </div>
-            <label class="post-auto-sort-row">
+            <label class="post-auto-sort-row" id="post-auto-sort-row" style="display:none;">
               <input type="checkbox" id="post-auto-sort" checked>
               <span>📋 파일명 숫자로 자동 정렬 (1, 2, 3 순서대로)</span>
             </label>
           </label>
-          <label class="post-field" id="post-group-field" style="display:flex; align-items:center; gap:10px;">
+          <label class="post-field" id="post-group-field" style="display:none; align-items:center; gap:10px;">
             <input type="checkbox" id="post-group" style="width:18px; height:18px; cursor:pointer;" checked>
             <span style="font-size:14px; font-weight:700; color:var(--gray-700);">🎴 여러 사진을 한 게시물(카루셀)로 묶기</span>
           </label>
@@ -454,6 +454,16 @@ function updateFileList(files) {
   const list = document.getElementById('post-file-list');
   const placeholder = document.querySelector('#post-modal .post-file-placeholder');
   if (!list || !placeholder) return;
+
+  const modal = document.getElementById('post-modal');
+  const isEdit = !!modal?._editId;
+  const count = files ? files.length : 0;
+  // 묶기/정렬 옵션은 2장 이상 + 새 글일 때만 노출 (1장이면 불필요 → 오해 방지)
+  const groupField = document.getElementById('post-group-field');
+  const sortRow = document.getElementById('post-auto-sort-row');
+  if (groupField) groupField.style.display = (!isEdit && count >= 2) ? 'flex' : 'none';
+  if (sortRow) sortRow.style.display = (count >= 2) ? 'flex' : 'none';
+
   if (!files || files.length === 0) {
     list.style.display = 'none';
     placeholder.style.display = '';

@@ -653,18 +653,18 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
             <textarea id="cards-post-body" rows="5" maxlength="2000" placeholder="카드뉴스에 함께 띄울 설명을 적어주세요"></textarea>
           </label>
           <label class="post-field" id="cards-post-file-field">
-            <span class="post-label" id="cards-post-file-label">카드 이미지 <small>(필수 · 여러 장 선택 가능)</small></span>
+            <span class="post-label" id="cards-post-file-label">카드 이미지 <small>(1장만 올려도 되고, 여러 장도 가능)</small></span>
             <div class="post-file-drop" id="cards-post-file-drop">
               <input type="file" id="cards-post-file" accept="image/*" multiple>
-              <div class="post-file-placeholder">클릭하거나 카드 이미지를 드래그해서 선택하세요<br><small>여러 번 추가 가능 · 파일명에 1,2,3 있으면 자동 정렬</small></div>
+              <div class="post-file-placeholder">클릭하거나 카드 이미지를 드래그해서 선택하세요<br><small>1장이면 그대로, 여러 장이면 묶거나 각각 올릴 수 있어요</small></div>
               <div id="cards-post-file-list" class="post-file-list" style="display:none;"></div>
             </div>
-            <label class="post-auto-sort-row">
+            <label class="post-auto-sort-row" id="cards-post-auto-sort-row" style="display:none;">
               <input type="checkbox" id="cards-post-auto-sort" checked>
               <span>📋 파일명 숫자로 자동 정렬 (1, 2, 3 순서대로)</span>
             </label>
           </label>
-          <label class="post-field" id="cards-post-group-field" style="display:flex; align-items:center; gap:10px;">
+          <label class="post-field" id="cards-post-group-field" style="display:none; align-items:center; gap:10px;">
             <input type="checkbox" id="cards-post-group" style="width:18px; height:18px; cursor:pointer;" checked>
             <span style="font-size:14px; font-weight:700; color:var(--gray-700);">🎴 여러 사진을 한 카드뉴스(카루셀)로 묶기</span>
           </label>
@@ -858,6 +858,16 @@ function updateCardsFileList(files) {
   const list = document.getElementById('cards-post-file-list');
   const placeholder = document.querySelector('#cards-post-modal .post-file-placeholder');
   if (!list || !placeholder) return;
+
+  const modal = document.getElementById('cards-post-modal');
+  const isEdit = !!modal?._editId;
+  const count = files ? files.length : 0;
+  // 묶기/정렬 옵션은 2장 이상 + 새 글일 때만 노출
+  const groupField = document.getElementById('cards-post-group-field');
+  const sortRow = document.getElementById('cards-post-auto-sort-row');
+  if (groupField) groupField.style.display = (!isEdit && count >= 2) ? 'flex' : 'none';
+  if (sortRow) sortRow.style.display = (count >= 2) ? 'flex' : 'none';
+
   if (!files || files.length === 0) {
     list.style.display = 'none';
     placeholder.style.display = '';
