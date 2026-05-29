@@ -293,6 +293,7 @@ async function pushSiteSettings(updates) {
   siteSettings = merged;
   sessionStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(merged));
   applyAllSettings();
+  window.dispatchEvent(new CustomEvent('settings:change', { detail: { settings: merged } }));
   return merged;
 }
 
@@ -320,8 +321,16 @@ async function pushSiteSettings(updates) {
     siteSettings = fresh;
     sessionStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(fresh));
     applyAllSettings();
+    window.dispatchEvent(new CustomEvent('settings:change', { detail: { settings: fresh } }));
   }
 })();
+
+/* ===== 다른 스크립트(songs.js 등)에서 설정 읽기/쓰기 ===== */
+window.SiteSettings = {
+  get: () => siteSettings,
+  fetch: fetchSiteSettings,
+  save: (updates) => pushSiteSettings(updates)
+};
 
 function setFontScale(scale) {
   scale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, scale));
