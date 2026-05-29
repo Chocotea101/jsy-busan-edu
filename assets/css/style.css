@@ -3861,8 +3861,9 @@ body.admin-edit-mode [data-edit-img]:hover {
 
 .song-lb-media {
   position: relative;
-  /* 폭·높이 모두 화면 안에 들어오게: 둘 중 작은 값 기준 */
+  /* 폭·높이 모두 화면 안에 들어오게: 둘 중 작은 값 기준 (dvh = 모바일 주소창 대응) */
   width: min(92vw, calc(70vh * 16 / 9));
+  width: min(92vw, calc(70dvh * 16 / 9));
   aspect-ratio: 16 / 9;
   background: #000;
   border-radius: 14px;
@@ -3943,10 +3944,18 @@ body.admin-edit-mode [data-edit-img]:hover {
 .song-lb-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
 
 @media (max-width: 600px) {
-  .song-lightbox { padding: 50px 12px; }
-  .song-lb-arrow { width: 44px; height: 44px; font-size: 18px; top: auto; bottom: 16px; transform: none; }
-  .song-lb-prev { left: 20px; }
-  .song-lb-next { right: 20px; }
+  /* 모바일: 영상은 화면 폭 기준(세로 화면이라 16:9는 자연히 작음), 잘림 없음 */
+  .song-lightbox { padding: 56px 10px 80px; align-items: center; }
+  .song-lb-inner { width: 100%; max-height: none; }
+  .song-lb-media {
+    width: 100%;          /* 폭 기준 → 높이는 9/16로 자동, 화면 안 */
+    max-height: 70dvh;
+  }
+  .song-lb-title { font-size: 18px; }
+  .song-lb-desc { font-size: 13px; }
+  .song-lb-arrow { width: 44px; height: 44px; font-size: 18px; top: auto; bottom: 18px; transform: none; }
+  .song-lb-prev { left: 24px; }
+  .song-lb-next { right: 24px; }
   .song-lb-close { top: 12px; right: 12px; width: 44px; height: 44px; }
 }
 
