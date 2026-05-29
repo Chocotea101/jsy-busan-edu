@@ -3775,6 +3775,15 @@ body.admin-edit-mode [data-edit-img]:hover {
 
 #videos-mode { max-width: 380px; }
 
+.video-title-preview {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--gray-700);
+  line-height: 1.6;
+  padding: 0 2px;
+}
+.video-title-preview b { color: var(--red-dark); }
+
 /* 영상 수정/삭제 버튼 (관리자) */
 .song-card { position: relative; }
 .video-actions {

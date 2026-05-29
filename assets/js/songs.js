@@ -19,7 +19,8 @@ const DEFAULT_VIDEOS = {
     { type: 'youtube', id: 'seZzjM-1m1s', title: '이재명 정부의 탄압', desc: '정승윤의 생각' },
     { type: 'youtube', id: 'dw-dJZRhRjc', title: '부산 시민여러분께 드리는 인사', desc: '부산KNN 생방 TV토론회' },
     { type: 'youtube', id: 'YBg6R9TvjmI', title: '현장 체험학습 정상화 방안', desc: '부산KNN 생방 TV토론회' },
-    { type: 'youtube', id: 'tNKZPe5gjDE', title: '211억원이 교육청 예산으로 운영', desc: '부산KNN 생방 TV토론회' }
+    { type: 'youtube', id: 'tNKZPe5gjDE', title: '211억원이 교육청 예산으로 운영', desc: '부산KNN 생방 TV토론회' },
+    { type: 'youtube', id: 'jIt6Ll-GR0g', title: '"저도 마찬가지입니다"', desc: '부산KNN 생방 TV토론회 | 정승윤 부산교육감 후보' }
   ]
 };
 
@@ -45,6 +46,17 @@ function ytId(input) {
   return m ? m[1] : input;
 }
 function ytThumb(id) { return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`; }
+
+/* "제목 | 부제목" → {title, desc}로 분리 (| 없으면 전체가 제목) */
+function splitTitle(raw) {
+  if (!raw) return { title: '', desc: '' };
+  const idx = raw.indexOf('|');
+  if (idx === -1) return { title: raw.trim(), desc: '' };
+  return {
+    title: raw.slice(0, idx).trim(),
+    desc: raw.slice(idx + 1).trim()
+  };
+}
 
 /* 기본 + 관리자추가 병합 */
 function getItems(cat) {
@@ -173,13 +185,11 @@ function openVideoModal(cat, edit = null) {
             <input type="text" id="video-url" placeholder="https://youtu.be/... 또는 https://youtube.com/shorts/...">
           </label>
           <label class="post-field">
-            <span class="post-label">제목 <small>(선택)</small></span>
-            <input type="text" id="video-title" maxlength="100" placeholder="영상 제목">
+            <span class="post-label">제목 <small>( | 앞=제목, 뒤=부제목 자동 분리 )</small></span>
+            <input type="text" id="video-title" maxlength="200" placeholder='예) "저도 마찬가지입니다" | 부산KNN TV토론회'>
+            <div id="video-title-preview" class="video-title-preview"></div>
           </label>
-          <label class="post-field">
-            <span class="post-label">설명 <small>(선택)</small></span>
-            <input type="text" id="video-desc" maxlength="200" placeholder="짧은 설명">
-          </label>
+          <input type="hidden" id="video-desc">
           <div class="post-modal-actions">
             <button type="button" class="btn btn-ghost" id="video-cancel">취소</button>
             <button type="submit" class="btn btn-primary" id="video-submit">추가</button>
@@ -193,12 +203,20 @@ function openVideoModal(cat, edit = null) {
     modal.querySelector('.post-modal-close').addEventListener('click', close);
     modal.querySelector('#video-cancel').addEventListener('click', close);
 
+    // "제목 | 부제목" 실시간 미리보기
+    modal.querySelector('#video-title').addEventListener('input', e => {
+      const { title, desc } = splitTitle(e.target.value);
+      const pv = modal.querySelector('#video-title-preview');
+      if (desc) pv.innerHTML = `제목: <b>${escapeHtml(title)}</b><br>부제목: <b>${escapeHtml(desc)}</b>`;
+      else if (title) pv.innerHTML = `제목: <b>${escapeHtml(title)}</b>`;
+      else pv.innerHTML = '';
+    });
+
     modal.querySelector('#video-form').addEventListener('submit', async e => {
       e.preventDefault();
       const c = modal.querySelector('#video-cat').value;
       const url = modal.querySelector('#video-url').value.trim();
-      const title = modal.querySelector('#video-title').value.trim();
-      const desc = modal.querySelector('#video-desc').value.trim();
+      const { title, desc } = splitTitle(modal.querySelector('#video-title').value);
       const id = ytId(url);
       if (!id) { videoToast('유튜브 링크를 정확히 입력해주세요.', 'error'); return; }
       const edit = modal._edit;
@@ -242,8 +260,12 @@ function openVideoModal(cat, edit = null) {
   modal.querySelector('#video-submit').textContent = edit ? '저장' : '추가';
   modal.querySelector('#video-cat').value = cat;
   modal.querySelector('#video-url').value = edit ? `https://youtu.be/${ytId(edit.item.id)}` : '';
-  modal.querySelector('#video-title').value = edit ? (edit.item.title || '') : '';
-  modal.querySelector('#video-desc').value = edit ? (edit.item.desc || '') : '';
+  // 수정 시 "제목 | 부제목" 형태로 합쳐서 한 칸에
+  const combinedTitle = edit
+    ? (edit.item.desc ? `${edit.item.title || ''} | ${edit.item.desc}` : (edit.item.title || ''))
+    : '';
+  modal.querySelector('#video-title').value = combinedTitle;
+  modal.querySelector('#video-title').dispatchEvent(new Event('input'));
 
   modal.classList.add('is-open');
   document.body.style.overflow = 'hidden';
