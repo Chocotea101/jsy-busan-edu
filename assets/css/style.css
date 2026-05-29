@@ -3850,10 +3850,9 @@ body.admin-edit-mode [data-edit-img]:hover {
 .song-lightbox.is-open { display: flex; }
 
 .song-lb-inner {
-  width: 100%;
-  max-width: min(1000px, 92vw);
-  /* 영상 + 캡션이 화면 높이 안에 다 들어오게 */
-  max-height: 90vh;
+  width: auto;
+  max-width: 96vw;
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3862,19 +3861,13 @@ body.admin-edit-mode [data-edit-img]:hover {
 
 .song-lb-media {
   position: relative;
-  width: 100%;
+  /* 폭·높이 모두 화면 안에 들어오게: 둘 중 작은 값 기준 */
+  width: min(92vw, calc(70vh * 16 / 9));
   aspect-ratio: 16 / 9;
-  /* 세로로 넘치면 높이 기준으로 줄이기 */
-  max-height: 72vh;
   background: #000;
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 30px 80px rgba(0,0,0,0.7);
-}
-
-/* 세로 화면(모바일 가로 영상)에서 영상이 높이 초과 시 폭 자동 조절 */
-@supports (aspect-ratio: 16/9) {
-  .song-lb-media { width: min(100%, calc(72vh * 16 / 9)); }
 }
 
 .song-lb-media iframe,
