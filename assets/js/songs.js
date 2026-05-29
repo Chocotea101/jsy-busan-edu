@@ -58,6 +58,16 @@ function splitTitle(raw) {
   };
 }
 
+/* 간단 서식: **굵게**, //빨강//, 줄바꿈(\n 또는 \\n) → HTML
+   (먼저 escape 후 안전한 토큰만 태그로 치환) */
+function fmt(raw) {
+  let s = escapeHtml(raw || '');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');   // **굵게**
+  s = s.replace(/\/\/([^/]+)\/\//g, '<span style="color:var(--red)">$1</span>'); // //빨강//
+  s = s.replace(/\\n|\n/g, '<br>');                  // 줄바꿈
+  return s;
+}
+
 /* 기본 + 관리자추가 병합 */
 function getItems(cat) {
   const base = DEFAULT_VIDEOS[cat] || [];
@@ -125,8 +135,8 @@ function render() {
           <div class="song-play-btn" aria-hidden="true">▶</div>
         </div>
         <div class="song-info">
-          <h3 class="song-title">${escapeHtml(s.title || `영상 ${i + 1}`)}</h3>
-          ${s.desc ? `<p class="song-desc">${escapeHtml(s.desc)}</p>` : ''}
+          <h3 class="song-title">${fmt(s.title || `영상 ${i + 1}`)}</h3>
+          ${s.desc ? `<p class="song-desc">${fmt(s.desc)}</p>` : ''}
         </div>
         ${logged && isAdded ? `
           <div class="video-actions">
@@ -185,8 +195,11 @@ function openVideoModal(cat, edit = null) {
             <input type="text" id="video-url" placeholder="https://youtu.be/... 또는 https://youtube.com/shorts/...">
           </label>
           <label class="post-field">
-            <span class="post-label">제목 <small>( | 앞=제목, 뒤=부제목 자동 분리 )</small></span>
-            <input type="text" id="video-title" maxlength="200" placeholder='예) "저도 마찬가지입니다" | 부산KNN TV토론회'>
+            <span class="post-label">제목 <small>( | 앞=제목, 뒤=부제목 )</small></span>
+            <input type="text" id="video-title" maxlength="300" placeholder='예) **211억** 교육청 예산 | 부산KNN TV토론회'>
+            <div class="video-fmt-guide">
+              ✏️ 서식: <code>**굵게**</code> · <code>//빨강//</code> · 줄바꿈은 <code>\n</code>
+            </div>
             <div id="video-title-preview" class="video-title-preview"></div>
           </label>
           <input type="hidden" id="video-desc">
@@ -203,13 +216,14 @@ function openVideoModal(cat, edit = null) {
     modal.querySelector('.post-modal-close').addEventListener('click', close);
     modal.querySelector('#video-cancel').addEventListener('click', close);
 
-    // "제목 | 부제목" 실시간 미리보기
+    // "제목 | 부제목" + 서식 실시간 미리보기 (실제 보일 모습)
     modal.querySelector('#video-title').addEventListener('input', e => {
       const { title, desc } = splitTitle(e.target.value);
       const pv = modal.querySelector('#video-title-preview');
-      if (desc) pv.innerHTML = `제목: <b>${escapeHtml(title)}</b><br>부제목: <b>${escapeHtml(desc)}</b>`;
-      else if (title) pv.innerHTML = `제목: <b>${escapeHtml(title)}</b>`;
-      else pv.innerHTML = '';
+      if (!title && !desc) { pv.innerHTML = ''; return; }
+      pv.innerHTML = `<span class="pv-label">미리보기</span>
+        <div class="pv-title">${fmt(title)}</div>
+        ${desc ? `<div class="pv-desc">${fmt(desc)}</div>` : ''}`;
     });
 
     modal.querySelector('#video-form').addEventListener('submit', async e => {
@@ -403,8 +417,8 @@ function renderSongLightbox() {
   mountPlayer();
 
   caption.innerHTML = `
-    <div class="song-lb-title">${escapeHtml(s.title || '영상')}</div>
-    ${s.desc ? `<div class="song-lb-desc">${escapeHtml(s.desc)}</div>` : ''}
+    <div class="song-lb-title">${fmt(s.title || '영상')}</div>
+    ${s.desc ? `<div class="song-lb-desc">${fmt(s.desc)}</div>` : ''}
     ${items.length > 1 ? `<div class="song-lb-counter">${idx + 1} / ${items.length}</div>` : ''}
   `;
 
