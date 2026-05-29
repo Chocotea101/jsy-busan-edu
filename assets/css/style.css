@@ -3775,28 +3775,36 @@ body.admin-edit-mode [data-edit-img]:hover {
 
 #videos-mode { max-width: 380px; }
 
-/* 영상 삭제 버튼 (관리자) */
+/* 영상 수정/삭제 버튼 (관리자) */
 .song-card { position: relative; }
-.video-del-btn {
+.video-actions {
   position: absolute;
   top: 8px;
   right: 8px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 3;
+}
+.song-card:hover .video-actions { opacity: 1; }
+@media (hover: none) { .video-actions { opacity: 1; } }
+
+.video-act-btn {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.65);
   color: #fff;
   border: none;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity .15s, background .15s;
-  z-index: 3;
+  transition: background .15s, transform .12s;
+  backdrop-filter: blur(4px);
 }
-.song-card:hover .video-del-btn { opacity: 1; }
-.video-del-btn:hover { background: var(--red); }
-@media (hover: none) { .video-del-btn { opacity: 1; } }
+.video-del-btn:hover { background: var(--red); transform: scale(1.1); }
+.video-edit-btn:hover { background: var(--c-2); transform: scale(1.1); }
 
 /* 쇼츠 — 세로(9:16) 그리드 */
 .songs-list.shorts-grid {

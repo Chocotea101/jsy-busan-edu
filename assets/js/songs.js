@@ -14,7 +14,13 @@ const DEFAULT_VIDEOS = {
     { type: 'youtube', id: 'jZBrJird11s', title: '03. 바로 정승윤', desc: '정승윤 부산교육감 후보 로고송' }
   ],
   debate: [],
-  shorts: []
+  shorts: [
+    { type: 'youtube', id: 'rrCftjxJbGk', title: '삭발 감행 이유', desc: '고성국 TV 출연 | 정승윤 부산교육감 후보' },
+    { type: 'youtube', id: 'seZzjM-1m1s', title: '이재명 정부의 탄압', desc: '정승윤의 생각' },
+    { type: 'youtube', id: 'dw-dJZRhRjc', title: '부산 시민여러분께 드리는 인사', desc: '부산KNN 생방 TV토론회' },
+    { type: 'youtube', id: 'YBg6R9TvjmI', title: '현장 체험학습 정상화 방안', desc: '부산KNN 생방 TV토론회' },
+    { type: 'youtube', id: 'tNKZPe5gjDE', title: '211억원이 교육청 예산으로 운영', desc: '부산KNN 생방 TV토론회' }
+  ]
 };
 
 const CAT_META = {
@@ -110,7 +116,12 @@ function render() {
           <h3 class="song-title">${escapeHtml(s.title || `영상 ${i + 1}`)}</h3>
           ${s.desc ? `<p class="song-desc">${escapeHtml(s.desc)}</p>` : ''}
         </div>
-        ${logged && isAdded ? `<button class="video-del-btn" data-idx="${i}" aria-label="삭제" title="삭제">✕</button>` : ''}
+        ${logged && isAdded ? `
+          <div class="video-actions">
+            <button class="video-act-btn video-edit-btn" data-idx="${i}" aria-label="수정" title="수정">✏️</button>
+            <button class="video-act-btn video-del-btn" data-idx="${i}" aria-label="삭제" title="삭제">✕</button>
+          </div>
+        ` : ''}
       </article>`;
   }).join('');
 
@@ -126,11 +137,20 @@ function render() {
     listEl.querySelectorAll('.video-del-btn').forEach(btn => {
       btn.addEventListener('click', e => { e.stopPropagation(); deleteVideo(curCat, Number(btn.dataset.idx)); });
     });
+    listEl.querySelectorAll('.video-edit-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const mergedIdx = Number(btn.dataset.idx);
+        const baseCount = (DEFAULT_VIDEOS[curCat] || []).length;
+        const item = getItems(curCat)[mergedIdx];
+        openVideoModal(curCat, { editAddedIdx: mergedIdx - baseCount, item });
+      });
+    });
   }
 }
 
-/* ===== 관리자: 영상 추가 모달 ===== */
-function openVideoModal(cat) {
+/* ===== 관리자: 영상 추가/수정 모달 ===== */
+function openVideoModal(cat, edit = null) {
   let modal = document.getElementById('video-modal');
   if (!modal) {
     modal = document.createElement('div');
@@ -140,7 +160,7 @@ function openVideoModal(cat) {
       <div class="post-modal-backdrop"></div>
       <div class="post-modal-body" style="max-width:520px;">
         <button class="post-modal-close" type="button" aria-label="닫기">✕</button>
-        <h3>영상 추가</h3>
+        <h3 id="video-modal-title">영상 추가</h3>
         <form id="video-form">
           <label class="post-field">
             <span class="post-label">📂 어디에 올릴까요?</span>
@@ -168,7 +188,7 @@ function openVideoModal(cat) {
       </div>
     `;
     document.body.appendChild(modal);
-    const close = () => { modal.classList.remove('is-open'); document.body.style.overflow = ''; modal.querySelector('#video-form').reset(); };
+    const close = () => { modal.classList.remove('is-open'); document.body.style.overflow = ''; modal._edit = null; modal.querySelector('#video-form').reset(); };
     modal.querySelector('.post-modal-backdrop').addEventListener('click', close);
     modal.querySelector('.post-modal-close').addEventListener('click', close);
     modal.querySelector('#video-cancel').addEventListener('click', close);
@@ -181,26 +201,50 @@ function openVideoModal(cat) {
       const desc = modal.querySelector('#video-desc').value.trim();
       const id = ytId(url);
       if (!id) { videoToast('유튜브 링크를 정확히 입력해주세요.', 'error'); return; }
+      const edit = modal._edit;
 
       const submit = modal.querySelector('#video-submit');
-      submit.disabled = true; submit.textContent = '추가 중…';
+      submit.disabled = true; submit.textContent = '저장 중…';
       try {
         const settings = await window.SiteSettings.fetch();
         const videos = { songs: [], debate: [], shorts: [], ...(settings.videos || {}) };
-        videos[c] = [...(videos[c] || []), { type: 'youtube', id, title, desc }];
+        const entry = { type: 'youtube', id, title, desc };
+
+        if (edit) {
+          // 수정 — 원래 카테고리에서 빼고, 선택한 카테고리에 반영
+          const oldCat = edit.cat;
+          if (oldCat === c) {
+            videos[c][edit.addedIdx] = entry;
+          } else {
+            (videos[oldCat] || []).splice(edit.addedIdx, 1);
+            videos[c] = [...(videos[c] || []), entry];
+          }
+        } else {
+          videos[c] = [...(videos[c] || []), entry];
+        }
+
         await window.SiteSettings.save({ videos });
         close();
-        videoToast('영상이 추가되었습니다.', 'success');
+        videoToast(edit ? '수정되었습니다.' : '영상이 추가되었습니다.', 'success');
         curCat = c; location.hash = c;
         renderModeToggle(); renderToolbar(); render();
       } catch (err) {
-        videoToast('추가 실패: ' + err.message, 'error');
+        videoToast('실패: ' + err.message, 'error');
       } finally {
-        submit.disabled = false; submit.textContent = '추가';
+        submit.disabled = false; submit.textContent = edit ? '저장' : '추가';
       }
     });
   }
+
+  // 추가/수정 채우기
+  modal._edit = edit ? { cat, addedIdx: edit.editAddedIdx } : null;
+  modal.querySelector('#video-modal-title').textContent = edit ? '영상 수정' : '영상 추가';
+  modal.querySelector('#video-submit').textContent = edit ? '저장' : '추가';
   modal.querySelector('#video-cat').value = cat;
+  modal.querySelector('#video-url').value = edit ? `https://youtu.be/${ytId(edit.item.id)}` : '';
+  modal.querySelector('#video-title').value = edit ? (edit.item.title || '') : '';
+  modal.querySelector('#video-desc').value = edit ? (edit.item.desc || '') : '';
+
   modal.classList.add('is-open');
   document.body.style.overflow = 'hidden';
   setTimeout(() => modal.querySelector('#video-url').focus(), 50);
