@@ -318,18 +318,18 @@ function openPostModal(init = {}) {
             <span class="post-label">본문 <small>(선택)</small></span>
             <textarea id="post-body" rows="6" maxlength="2000" placeholder="현장에서 있었던 일, 느낀 점 등을 적어주세요"></textarea>
           </label>
-          <label class="post-field" id="post-file-field">
+          <div class="post-field" id="post-file-field">
             <span class="post-label">사진 <small id="post-file-hint">(1장만 올려도 되고, 여러 장도 가능)</small></span>
+            <input type="file" id="post-file" accept="image/*" multiple hidden>
+            <div id="post-file-list" class="post-file-list" style="display:none;"></div>
             <div class="post-file-drop" id="post-file-drop">
-              <input type="file" id="post-file" accept="image/*" multiple>
               <div class="post-file-placeholder">클릭하거나 사진을 드래그해서 선택하세요<br><small>사진 1장이면 그대로, 여러 장이면 묶거나 각각 올릴 수 있어요</small></div>
-              <div id="post-file-list" class="post-file-list" style="display:none;"></div>
             </div>
             <label class="post-auto-sort-row" id="post-auto-sort-row" style="display:none;">
               <input type="checkbox" id="post-auto-sort" checked>
               <span>📋 파일명 숫자로 자동 정렬 (1, 2, 3 순서대로)</span>
             </label>
-          </label>
+          </div>
           <label class="post-field" id="post-group-field" style="display:none; align-items:center; gap:10px;">
             <input type="checkbox" id="post-group" style="width:18px; height:18px; cursor:pointer;" checked>
             <span style="font-size:14px; font-weight:700; color:var(--gray-700);">🎴 여러 사진을 한 게시물(카루셀)로 묶기</span>
@@ -355,7 +355,10 @@ function openPostModal(init = {}) {
     const fileInput = modal.querySelector('#post-file');
     const drop = modal.querySelector('#post-file-drop');
 
-    fileInput.addEventListener('change', () => addFilesToList(fileInput.files));
+    fileInput.addEventListener('change', () => { addFilesToList(fileInput.files); fileInput.value = ''; });
+
+    // 드롭존(빈 영역) 클릭 → 파일 선택 열기
+    drop.addEventListener('click', () => fileInput.click());
 
     ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => {
       e.preventDefault(); drop.classList.add('is-dragover');
@@ -464,14 +467,19 @@ function updateFileList(files) {
   if (groupField) groupField.style.display = (!isEdit && count >= 2) ? 'flex' : 'none';
   if (sortRow) sortRow.style.display = (count >= 2) ? 'flex' : 'none';
 
+  // 드롭존 문구: 파일 있으면 '+ 더 추가'로
+  if (placeholder) {
+    placeholder.innerHTML = count > 0
+      ? '<strong>+ 사진 더 추가</strong>'
+      : '클릭하거나 사진을 드래그해서 선택하세요<br><small>사진 1장이면 그대로, 여러 장이면 묶거나 각각 올릴 수 있어요</small>';
+  }
+
   if (!files || files.length === 0) {
     list.style.display = 'none';
-    placeholder.style.display = '';
     list.innerHTML = '';
     return;
   }
   list.style.display = 'block';
-  placeholder.style.display = 'none';
   list.innerHTML = files.map((f, i) => `
     <div class="post-file-item" data-idx="${i}">
       <img src="${URL.createObjectURL(f)}" alt="${escapeAttr(f.name)}">

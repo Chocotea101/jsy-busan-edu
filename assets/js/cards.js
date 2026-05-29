@@ -652,18 +652,18 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
             <span class="post-label">본문 <small>(선택)</small></span>
             <textarea id="cards-post-body" rows="5" maxlength="2000" placeholder="카드뉴스에 함께 띄울 설명을 적어주세요"></textarea>
           </label>
-          <label class="post-field" id="cards-post-file-field">
+          <div class="post-field" id="cards-post-file-field">
             <span class="post-label" id="cards-post-file-label">카드 이미지 <small>(1장만 올려도 되고, 여러 장도 가능)</small></span>
+            <input type="file" id="cards-post-file" accept="image/*" multiple hidden>
+            <div id="cards-post-file-list" class="post-file-list" style="display:none;"></div>
             <div class="post-file-drop" id="cards-post-file-drop">
-              <input type="file" id="cards-post-file" accept="image/*" multiple>
               <div class="post-file-placeholder">클릭하거나 카드 이미지를 드래그해서 선택하세요<br><small>1장이면 그대로, 여러 장이면 묶거나 각각 올릴 수 있어요</small></div>
-              <div id="cards-post-file-list" class="post-file-list" style="display:none;"></div>
             </div>
             <label class="post-auto-sort-row" id="cards-post-auto-sort-row" style="display:none;">
               <input type="checkbox" id="cards-post-auto-sort" checked>
               <span>📋 파일명 숫자로 자동 정렬 (1, 2, 3 순서대로)</span>
             </label>
-          </label>
+          </div>
           <label class="post-field" id="cards-post-group-field" style="display:none; align-items:center; gap:10px;">
             <input type="checkbox" id="cards-post-group" style="width:18px; height:18px; cursor:pointer;" checked>
             <span style="font-size:14px; font-weight:700; color:var(--gray-700);">🎴 여러 사진을 한 카드뉴스(카루셀)로 묶기</span>
@@ -697,7 +697,8 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
     const fileInput = modal.querySelector('#cards-post-file');
     const drop = modal.querySelector('#cards-post-file-drop');
 
-    fileInput.addEventListener('change', () => addCardsFiles(fileInput.files));
+    fileInput.addEventListener('change', () => { addCardsFiles(fileInput.files); fileInput.value = ''; });
+    drop.addEventListener('click', () => fileInput.click());
     ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('is-dragover'); }));
     ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('is-dragover'); }));
     drop.addEventListener('drop', e => {
@@ -868,14 +869,18 @@ function updateCardsFileList(files) {
   if (groupField) groupField.style.display = (!isEdit && count >= 2) ? 'flex' : 'none';
   if (sortRow) sortRow.style.display = (count >= 2) ? 'flex' : 'none';
 
+  if (placeholder) {
+    placeholder.innerHTML = count > 0
+      ? '<strong>+ 카드 이미지 더 추가</strong>'
+      : '클릭하거나 카드 이미지를 드래그해서 선택하세요<br><small>1장이면 그대로, 여러 장이면 묶거나 각각 올릴 수 있어요</small>';
+  }
+
   if (!files || files.length === 0) {
     list.style.display = 'none';
-    placeholder.style.display = '';
     list.innerHTML = '';
     return;
   }
   list.style.display = 'block';
-  placeholder.style.display = 'none';
   list.innerHTML = files.map((f, i) => `
     <div class="post-file-item" data-idx="${i}">
       <img src="${URL.createObjectURL(f)}" alt="${escapeAttr(f.name)}">

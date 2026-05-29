@@ -3537,13 +3537,6 @@ body.admin-edit-mode [data-edit-img]:hover {
   background: var(--red-soft);
 }
 
-.post-file-drop input[type="file"] {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
 .post-file-placeholder {
   font-size: 14px;
   color: var(--gray-500);
@@ -3551,6 +3544,17 @@ body.admin-edit-mode [data-edit-img]:hover {
   text-align: center;
   padding: 20px;
   pointer-events: none;
+}
+
+/* 파일 리스트가 있으면 그 아래 드롭존은 '+ 더 추가' 영역 */
+.post-file-list + .post-file-drop {
+  min-height: 70px;
+  margin-top: 10px;
+}
+
+.post-file-list + .post-file-drop .post-file-placeholder {
+  padding: 14px;
+  font-size: 13px;
 }
 
 .post-file-preview {
