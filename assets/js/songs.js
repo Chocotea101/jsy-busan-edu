@@ -17,6 +17,12 @@ const SONGS = [
     title: '02. 믿고 맡겨줘요',
     desc: '정승윤 부산교육감 후보 로고송'
   },
+  {
+    type: 'youtube',
+    id: 'jZBrJird11s',
+    title: '03. 바로 정승윤',
+    desc: '정승윤 부산교육감 후보 로고송'
+  },
 
   /* ===== 추가 형식 참고 =====
   // 유튜브:  { type: 'youtube', id: '유튜브주소 또는 ID', title: '...', desc: '...' }

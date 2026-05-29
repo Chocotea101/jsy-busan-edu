@@ -10,15 +10,16 @@
   [headers.values]
     Cache-Control = "public, max-age=2592000, immutable"
 
+# CSS/JS는 항상 최신 확인 (콘텐츠·기능 자주 업데이트) — 캐시로 인한 구버전 표시 방지
 [[headers]]
   for = "/assets/css/*"
   [headers.values]
-    Cache-Control = "public, max-age=86400"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/assets/js/*"
   [headers.values]
-    Cache-Control = "public, max-age=86400"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 # 한글이 깨지지 않도록 charset 명시
 [[headers]]
