@@ -3746,24 +3746,64 @@ body.admin-edit-mode [data-edit-img]:hover {
   box-shadow: var(--shadow-md);
 }
 
-/* 16:9 영상 영역 */
+.song-card { cursor: pointer; }
+
+/* 16:9 썸네일 영역 */
 .song-media {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
   background: #000;
+  overflow: hidden;
 }
 
-.song-media iframe,
-.song-media video {
-  position: absolute;
-  inset: 0;
+.song-media img {
   width: 100%;
   height: 100%;
-  border: 0;
+  object-fit: cover;
   display: block;
-  object-fit: contain;
-  background: #000;
+  transition: transform .3s, filter .2s;
+}
+
+.song-card:hover .song-media img {
+  transform: scale(1.04);
+  filter: brightness(0.85);
+}
+
+.song-thumb-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56px;
+  background: linear-gradient(135deg, #2a2a2e, #18181b);
+}
+
+/* 재생 버튼 오버레이 */
+.song-play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: rgba(230, 0, 18, 0.92);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  padding-left: 5px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  transition: transform .15s, background .15s;
+  pointer-events: none;
+}
+
+.song-card:hover .song-play-btn {
+  transform: translate(-50%, -50%) scale(1.12);
+  background: var(--red);
 }
 
 .song-info {
@@ -3783,6 +3823,118 @@ body.admin-edit-mode [data-edit-img]:hover {
   color: var(--gray-700);
   line-height: 1.6;
   margin: 0;
+}
+
+/* ===== 유세송 라이트박스 ===== */
+.song-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(10, 12, 18, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  animation: cl-fade-in .2s ease;
+}
+
+.song-lightbox.is-open { display: flex; }
+
+.song-lb-inner {
+  width: 100%;
+  max-width: 1000px;
+}
+
+.song-lb-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+}
+
+.song-lb-media iframe,
+.song-lb-media video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #000;
+}
+
+.song-lb-caption {
+  text-align: center;
+  color: #fff;
+  margin-top: 18px;
+}
+
+.song-lb-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.song-lb-desc {
+  font-size: 15px;
+  color: #bbb;
+  margin-top: 6px;
+}
+
+.song-lb-counter {
+  display: inline-block;
+  margin-top: 12px;
+  background: rgba(255,255,255,0.15);
+  padding: 5px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.song-lb-close,
+.song-lb-arrow {
+  position: absolute;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.28);
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, transform .12s;
+  backdrop-filter: blur(6px);
+}
+
+.song-lb-close { top: 20px; right: 20px; width: 52px; height: 52px; font-size: 20px; font-weight: 700; }
+
+.song-lb-arrow {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.song-lb-prev { left: 20px; }
+.song-lb-next { right: 20px; }
+
+.song-lb-close:hover,
+.song-lb-arrow:hover { background: rgba(255,255,255,0.32); }
+.song-lb-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+@media (max-width: 600px) {
+  .song-lightbox { padding: 50px 12px; }
+  .song-lb-arrow { width: 44px; height: 44px; font-size: 18px; top: auto; bottom: 16px; transform: none; }
+  .song-lb-prev { left: 20px; }
+  .song-lb-next { right: 20px; }
+  .song-lb-close { top: 12px; right: 12px; width: 44px; height: 44px; }
 }
 
 /* ============================================================
