@@ -675,7 +675,7 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
           </label>
           <div class="post-modal-actions">
             <button type="button" class="btn btn-ghost" id="cards-post-cancel">취소</button>
-            <button type="submit" class="btn btn-primary" id="cards-post-submit">올리기</button>
+            <button type="button" class="btn btn-primary" id="cards-post-submit">올리기</button>
           </div>
         </form>
       </div>
@@ -706,6 +706,13 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
       if (dropped.length > 0) addCardsFiles(dropped);
     });
 
+    // 버튼 직접 클릭으로 제출 (모바일 zoom 등에서 form submit이 안 걸리는 문제 방지)
+    modal.querySelector('#cards-post-submit').addEventListener('click', () => {
+      modal.querySelector('#cards-post-form').requestSubmit
+        ? modal.querySelector('#cards-post-form').requestSubmit()
+        : modal.querySelector('#cards-post-form').dispatchEvent(new Event('submit', { cancelable: true }));
+    });
+
     modal.querySelector('#cards-post-form').addEventListener('submit', async e => {
       e.preventDefault();
       const title = modal.querySelector('#cards-post-title').value.trim();
@@ -714,7 +721,11 @@ function openCardsPostModal(defaultCategory = '', init = {}) {
       const pinned = modal.querySelector('#cards-post-pinned').checked;
       const editId = modal._editId;
       const token = window.Admin?.getToken();
-      if (!token) { cardsToast('로그인이 필요합니다.', 'error'); return; }
+      if (!token) {
+        cardsToast('세션이 만료되었습니다. 다시 로그인해주세요.', 'error');
+        setTimeout(() => window.Admin?.login(), 800);
+        return;
+      }
 
       const submit = modal.querySelector('#cards-post-submit');
       submit.disabled = true;

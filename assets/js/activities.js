@@ -341,7 +341,7 @@ function openPostModal(init = {}) {
           </label>
           <div class="post-modal-actions">
             <button type="button" class="btn btn-ghost" id="post-cancel">취소</button>
-            <button type="submit" class="btn btn-primary" id="post-submit">올리기</button>
+            <button type="button" class="btn btn-primary" id="post-submit">올리기</button>
           </div>
         </form>
       </div>
@@ -371,7 +371,9 @@ function openPostModal(init = {}) {
       if (dropped.length > 0) addFilesToList(dropped);
     });
 
-    modal.querySelector('#post-form').addEventListener('submit', onSubmitPost);
+    // 버튼 직접 클릭으로 처리 (모바일 zoom 등에서 form submit이 안 걸리는 문제 방지)
+    modal.querySelector('#post-submit').addEventListener('click', onSubmitPost);
+    modal.querySelector('#post-form').addEventListener('submit', e => { e.preventDefault(); onSubmitPost(e); });
   }
   // 수정/새 작성 분기
   const isEdit = !!init.editId;
@@ -511,16 +513,23 @@ function updateFileList(files) {
   });
 }
 
+let _submitting = false;
 async function onSubmitPost(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
+  if (_submitting) return; // 중복 클릭/제출 방지
   const modal = document.getElementById('post-modal');
   const title = document.getElementById('post-title').value.trim();
   const body = document.getElementById('post-body').value.trim();
   const pinned = document.getElementById('post-pinned').checked;
   const editId = modal._editId;
   const token = window.Admin?.getToken();
-  if (!token) { toast('로그인이 필요합니다.', 'error'); return; }
+  if (!token) {
+    toast('세션이 만료되었습니다. 다시 로그인해주세요.', 'error');
+    setTimeout(() => window.Admin?.login(), 800);
+    return;
+  }
 
+  _submitting = true;
   const submitBtn = document.getElementById('post-submit');
   submitBtn.disabled = true;
 
@@ -600,6 +609,7 @@ async function onSubmitPost(e) {
     toast('실패: ' + err.message, 'error');
     console.error(err);
   } finally {
+    _submitting = false;
     submitBtn.disabled = false;
     submitBtn.textContent = editId ? '저장' : '올리기';
   }
