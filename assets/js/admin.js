@@ -198,16 +198,25 @@ const SCALE_MAX = 1.6;
 let siteSettings = {};
 
 function applyFontScale(scale) {
-  if (!scale || scale === 1) {
-    document.body.style.zoom = '';
+  let s = scale || 1;
+  // 모바일은 화면이 좁아 큰 배율이면 레이아웃이 가로로 잘림 → 안전 범위로 완화
+  if (window.innerWidth <= 600) s = Math.min(s, 1.15);
+
+  // html에만 적용 (예전엔 html+body 둘 다 적용해 1.2×1.2=1.44로 과확대되던 버그 수정)
+  document.body.style.zoom = '';
+  if (s === 1) {
     document.documentElement.style.zoom = '';
     return;
   }
-  document.body.style.zoom = scale;
-  if (CSS.supports && CSS.supports('zoom: 1')) {
-    document.documentElement.style.zoom = scale;
-  }
+  document.documentElement.style.zoom = s;
 }
+
+// 화면 회전/크기 변경 시 글자 크기 재적용 (모바일 안전 배율 반영)
+let _fontScaleResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_fontScaleResizeTimer);
+  _fontScaleResizeTimer = setTimeout(() => applyFontScale(siteSettings.fontScale || 1), 200);
+});
 
 function applyAllSettings() {
   applyFontScale(siteSettings.fontScale || 1);
